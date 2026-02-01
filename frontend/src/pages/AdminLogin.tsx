@@ -39,7 +39,8 @@ const AdminLogin = () => {
       const response = await fetch(`${apiBaseUrl}/api/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password }),
+        credentials: 'include' // 這樣 refresh cookie 才能寫進瀏覽器
       });
 
       const result = (await response.json()) as LoginResponse & { message?: string };
