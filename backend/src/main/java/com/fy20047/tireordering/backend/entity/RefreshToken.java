@@ -24,7 +24,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-// 存 refresh token 的資料表結構（hash、過期時間、撤銷時間、admin_id）
+// 存 refresh token 的資料表，只存 hash，並記錄 expiresAt / revokedAt / admin_id
 public class RefreshToken {
 
     @Id

@@ -1,5 +1,6 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { adminApiFetch } from '../api/adminApi';
 import styles from '../styles/AdminOrders.module.css';
 
 type OrderStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
@@ -87,14 +88,9 @@ const AdminOrders = () => {
     }
 
     const query = params.toString();
-    const url = `${apiBaseUrl}/api/admin/orders${query ? `?${query}` : ''}`;
 
     try {
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const response = await adminApiFetch(`/api/admin/orders${query ? `?${query}` : ''}`);
 
       if (response.status === 401 || response.status === 403) {
         localStorage.removeItem('adminToken');
@@ -164,11 +160,10 @@ const AdminOrders = () => {
     setSuccessMessage('');
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/admin/orders/${orderId}/status`, {
+      const response = await adminApiFetch(`/api/admin/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ status })
       });

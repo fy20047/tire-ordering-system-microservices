@@ -1,5 +1,6 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { adminApiFetch } from '../api/adminApi';
 import styles from '../styles/AdminTires.module.css';
 
 type Tire = {
@@ -87,11 +88,7 @@ const AdminTires = () => {
     const url = `${apiBaseUrl}/api/admin/tires${query ? `?${query}` : ''}`;
 
     try {
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const response = await adminApiFetch(`/api/admin/tires${query ? `?${query}` : ''}`);
 
       if (response.status === 401 || response.status === 403) {
         localStorage.removeItem('adminToken');
@@ -194,11 +191,10 @@ const AdminTires = () => {
     const method = isEditing ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch(url, {
+      const response = await adminApiFetch(`/api/admin/tires${isEditing ? `/${editingId}` : ''}`, {
         method,
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
       });
@@ -237,11 +233,10 @@ const AdminTires = () => {
     }
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/admin/tires/${tire.id}/active`, {
+      const response = await adminApiFetch(`/api/admin/tires/${tire.id}/active`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ isActive: !tire.isActive })
       });
