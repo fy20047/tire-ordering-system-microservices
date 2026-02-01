@@ -12,10 +12,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 // Spring Security 設定（放行哪些 API、JWT filter、設定哪些 API 要登入）
-// 設定 /api/admin/** 需要 ROLE_ADMIN
-// /api/admin/login 允許匿名
-// /api/tires、/api/orders 允許公開
-// JWT filter 必須放在 UsernamePasswordAuthenticationFilter 之前
 @Configuration
 public class SecurityConfig {
 
@@ -28,17 +24,17 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/admin/login",
-                                "/api/admin/refresh",
-                                "/api/admin/logout",
+                                "/api/admin/login", // /api/admin/login 允許匿名
+                                "/api/admin/refresh", // 讓 refresh 和 logout 不需要 access token 就能被呼叫，
+                                "/api/admin/logout", // 因為當 access token 過期時，refresh API 會被 JWT filter 擋掉，必須放行改用 refresh cookie 驗證
                                 "/api/tires/**",
-                                "/api/orders/**",
+                                "/api/orders/**", // /api/tires、/api/orders 允許公開
                                 "/api/health"
                         ).permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN") // /api/admin/** 需要 ROLE_ADMIN
                         .anyRequest().permitAll()
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class); // JWT filter 必須放在 UsernamePasswordAuthenticationFilter 之前
 
         return http.build();
     }

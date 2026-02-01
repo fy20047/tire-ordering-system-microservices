@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminApiFetch } from '../api/adminApi';
 import styles from '../styles/AdminOrders.module.css';
@@ -53,7 +53,7 @@ const installationLabel: Record<InstallationOption, string> = {
 const AdminOrders = () => {
   const navigate = useNavigate();
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
-  const token = useMemo(() => localStorage.getItem('adminToken'), []);
+  const getToken = () => localStorage.getItem('adminToken');
 
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [filters, setFilters] = useState<Filters>(defaultFilters);
@@ -65,15 +65,15 @@ const AdminOrders = () => {
 
   useEffect(() => {
     document.title = '訂單管理';
-    if (!token) {
+    if (!getToken()) {
       navigate('/admin/login');
       return;
     }
     void fetchOrders();
-  }, [navigate, token]);
+  }, [navigate]);
 
   const fetchOrders = async (nextFilters?: Filters) => {
-    if (!apiBaseUrl || !token) {
+    if (!apiBaseUrl || !getToken()) {
       return;
     }
 
@@ -146,7 +146,7 @@ const AdminOrders = () => {
   };
 
   const handleUpdateStatus = async (orderId: number) => {
-    if (!apiBaseUrl || !token) {
+    if (!apiBaseUrl || !getToken()) {
       return;
     }
 

@@ -39,7 +39,7 @@ public class AdminAuthController {
         this.jwtService = jwtService;
     }
 
-    // 回傳 access token + 設 httpOnly refresh cookie
+    // 登入成功回傳 access token + 設 httpOnly refresh cookie
     @PostMapping("/login")
     public ResponseEntity<AdminLoginResponse> login(
             @Valid @RequestBody AdminLoginRequest request,

@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminApiFetch } from '../api/adminApi';
 import styles from '../styles/AdminTires.module.css';
@@ -43,7 +43,7 @@ const defaultFormState: TireFormState = {
 const AdminTires = () => {
   const navigate = useNavigate();
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
-  const token = useMemo(() => localStorage.getItem('adminToken'), []);
+  const getToken = () => localStorage.getItem('adminToken');
 
   const [tires, setTires] = useState<Tire[]>([]);
   const [filters, setFilters] = useState<Filters>({
@@ -61,15 +61,15 @@ const AdminTires = () => {
 
   useEffect(() => {
     document.title = '輪胎管理';
-    if (!token) {
+    if (!getToken()) {
       navigate('/admin/login');
       return;
     }
     void fetchTires();
-  }, [navigate, token]);
+  }, [navigate]);
 
   const fetchTires = async (nextFilters?: Filters) => {
-    if (!apiBaseUrl || !token) {
+    if (!apiBaseUrl || !getToken()) {
       return;
     }
 
@@ -85,7 +85,6 @@ const AdminTires = () => {
     if (appliedFilters.active !== 'all') params.set('active', appliedFilters.active);
 
     const query = params.toString();
-    const url = `${apiBaseUrl}/api/admin/tires${query ? `?${query}` : ''}`;
 
     try {
       const response = await adminApiFetch(`/api/admin/tires${query ? `?${query}` : ''}`);
@@ -167,7 +166,7 @@ const AdminTires = () => {
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!apiBaseUrl || !token) {
+    if (!apiBaseUrl || !getToken()) {
       return;
     }
 
@@ -185,9 +184,9 @@ const AdminTires = () => {
     };
 
     const isEditing = editingId !== null;
-    const url = isEditing
-      ? `${apiBaseUrl}/api/admin/tires/${editingId}`
-      : `${apiBaseUrl}/api/admin/tires`;
+    // const url = isEditing
+    //   ? `${apiBaseUrl}/api/admin/tires/${editingId}`
+    //   : `${apiBaseUrl}/api/admin/tires`;
     const method = isEditing ? 'PUT' : 'POST';
 
     try {
@@ -228,7 +227,7 @@ const AdminTires = () => {
   };
 
   const handleToggleActive = async (tire: Tire) => {
-    if (!apiBaseUrl || !token) {
+    if (!apiBaseUrl || !getToken()) {
       return;
     }
 
@@ -264,7 +263,12 @@ const AdminTires = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await adminApiFetch('/api/admin/logout', { method: 'POST' });
+    } catch (error) {
+      // best-effort logout; still clear local token
+    }
     localStorage.removeItem('adminToken');
     navigate('/admin/login');
   };
