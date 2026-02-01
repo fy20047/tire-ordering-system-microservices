@@ -28,11 +28,13 @@ public class TireService {
         return tireRepository.search(normalize(brand), normalize(series), normalize(size), active);
     }
 
+    // 將新的輪胎物件存入資料庫
     @Transactional
     public Tire createTire(Tire tire) {
         return tireRepository.save(tire);
     }
 
+    // 根據 ID 撈出舊資料，然後逐一更新欄位
     @Transactional
     public Tire updateTire(Long id, Tire updated) {
         Tire existing = getTireById(id);
@@ -45,6 +47,7 @@ public class TireService {
         return tireRepository.save(existing);
     }
 
+    // 快速切換輪胎的上下架狀態，不需要更新整個物件
     @Transactional
     public Tire updateActiveStatus(Long id, boolean isActive) {
         Tire existing = getTireById(id);
