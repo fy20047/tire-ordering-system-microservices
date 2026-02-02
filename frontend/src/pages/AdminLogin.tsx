@@ -1,14 +1,17 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'; // 引入 Context Hook
 import styles from '../styles/AdminLogin.module.css';
 
+// 根據後端 AdminLoginResponse 定義
 type LoginResponse = {
-  token: string;
+  accessToken: string;
   expiresInSeconds: number;
 };
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const { login, isAuthenticated } = useAuth(); // 使用 Context
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
 
   const [username, setUsername] = useState('');
@@ -16,13 +19,14 @@ const AdminLogin = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // 如果已經是登入狀態 (Context 為 true)，直接轉址
   useEffect(() => {
     document.title = '管理員登入';
-    const existingToken = localStorage.getItem('adminToken');
-    if (existingToken) {
+    // const existingToken = localStorage.getItem('adminToken');
+    if (isAuthenticated) {
       navigate('/admin/tires');
     }
-  }, [navigate]);
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -40,7 +44,7 @@ const AdminLogin = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
-        credentials: 'include' // 這樣 refresh cookie 才能寫進瀏覽器
+        credentials: 'include' // 讓後端寫入 HttpOnly Refresh Cookie
       });
 
       const result = (await response.json()) as LoginResponse & { message?: string };
@@ -51,8 +55,13 @@ const AdminLogin = () => {
         return;
       }
 
-      localStorage.setItem('adminToken', result.token);
+      // localStorage.setItem('adminToken', result.token);
+      // 不再使用 localStorage.setItem
+      // 改為呼叫 Context 的 login，把 Token 存入記憶體
+      login(result.accessToken);
+
       navigate('/admin/tires');
+
     } catch (error) {
       setErrorMessage('登入失敗，請稍後再試。');
     } finally {
