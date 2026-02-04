@@ -35,3 +35,4 @@ frontend/README.txt
 # Frontend build artifacts
 frontend/node_modules/
 frontend/dist/
+**/tsconfig.tsbuildinfo
