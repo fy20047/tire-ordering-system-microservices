@@ -1,6 +1,7 @@
 import { ChangeEvent, FormEvent, useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminApiFetch } from '../api/adminApi';
+import { useAuth } from '../context/AuthContext';
 import styles from '../styles/AdminOrders.module.css';
 
 type OrderStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
@@ -53,7 +54,7 @@ const installationLabel: Record<InstallationOption, string> = {
 const AdminOrders = () => {
   const navigate = useNavigate();
   const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-  const getToken = () => localStorage.getItem('adminToken');
+  const { isAuthenticated, isLoading, logout } = useAuth();
 
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [filters, setFilters] = useState<Filters>(defaultFilters);
@@ -65,15 +66,18 @@ const AdminOrders = () => {
 
   useEffect(() => {
     document.title = '訂單管理';
-    if (!getToken()) {
+    if (isLoading) {
+      return;
+    }
+    if (!isAuthenticated) {
       navigate('/admin/login');
       return;
     }
     void fetchOrders();
-  }, [navigate]);
+  }, [isAuthenticated, isLoading, navigate]);
 
   const fetchOrders = async (nextFilters?: Filters) => {
-    if (rawApiBaseUrl === undefined || !getToken()) {
+    if (rawApiBaseUrl === undefined) {
       return;
     }
 
@@ -93,7 +97,7 @@ const AdminOrders = () => {
       const response = await adminApiFetch(`/api/admin/orders${query ? `?${query}` : ''}`);
 
       if (response.status === 401 || response.status === 403) {
-        localStorage.removeItem('adminToken');
+        await logout();
         navigate('/admin/login');
         return;
       }
@@ -146,7 +150,7 @@ const AdminOrders = () => {
   };
 
   const handleUpdateStatus = async (orderId: number) => {
-    if (rawApiBaseUrl === undefined || !getToken()) {
+    if (rawApiBaseUrl === undefined) {
       return;
     }
 
@@ -169,7 +173,7 @@ const AdminOrders = () => {
       });
 
       if (response.status === 401 || response.status === 403) {
-        localStorage.removeItem('adminToken');
+        await logout();
         navigate('/admin/login');
         return;
       }

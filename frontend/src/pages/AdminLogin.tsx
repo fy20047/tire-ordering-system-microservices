@@ -5,7 +5,8 @@ import styles from '../styles/AdminLogin.module.css';
 
 // 根據後端 AdminLoginResponse 定義
 type LoginResponse = {
-  accessToken: string;
+  accessToken?: string;
+  token?: string;
   expiresInSeconds: number;
 };
 
@@ -59,9 +60,13 @@ const AdminLogin = () => {
       // localStorage.setItem('adminToken', result.token);
       // 不再使用 localStorage.setItem
       // 改為呼叫 Context 的 login，把 Token 存入記憶體
-      login(result.accessToken);
-
-      navigate('/admin/tires');
+      const accessToken = result.accessToken || result.token;
+      if (!accessToken) {
+        setErrorMessage('登入失敗：缺少 access token。');
+        setIsSubmitting(false);
+        return;
+      }
+      login(accessToken);
 
     } catch (error) {
       setErrorMessage('登入失敗，請稍後再試。');

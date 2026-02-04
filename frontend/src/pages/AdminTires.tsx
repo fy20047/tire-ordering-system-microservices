@@ -1,6 +1,7 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminApiFetch } from '../api/adminApi';
+import { useAuth } from '../context/AuthContext';
 import styles from '../styles/AdminTires.module.css';
 
 type Tire = {
@@ -43,7 +44,7 @@ const defaultFormState: TireFormState = {
 const AdminTires = () => {
   const navigate = useNavigate();
   const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-  const getToken = () => localStorage.getItem('adminToken');
+  const { isAuthenticated, isLoading, logout } = useAuth();
 
   const [tires, setTires] = useState<Tire[]>([]);
   const [filters, setFilters] = useState<Filters>({
@@ -61,15 +62,18 @@ const AdminTires = () => {
 
   useEffect(() => {
     document.title = '輪胎管理';
-    if (!getToken()) {
+    if (isLoading) {
+      return;
+    }
+    if (!isAuthenticated) {
       navigate('/admin/login');
       return;
     }
     void fetchTires();
-  }, [navigate]);
+  }, [isAuthenticated, isLoading, navigate]);
 
   const fetchTires = async (nextFilters?: Filters) => {
-    if (rawApiBaseUrl === undefined || !getToken()) {
+    if (rawApiBaseUrl === undefined) {
       return;
     }
 
@@ -90,7 +94,7 @@ const AdminTires = () => {
       const response = await adminApiFetch(`/api/admin/tires${query ? `?${query}` : ''}`);
 
       if (response.status === 401 || response.status === 403) {
-        localStorage.removeItem('adminToken');
+        await logout();
         navigate('/admin/login');
         return;
       }
@@ -166,7 +170,7 @@ const AdminTires = () => {
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (rawApiBaseUrl === undefined || !getToken()) {
+    if (rawApiBaseUrl === undefined) {
       return;
     }
 
@@ -199,7 +203,7 @@ const AdminTires = () => {
       });
 
       if (response.status === 401 || response.status === 403) {
-        localStorage.removeItem('adminToken');
+        await logout();
         navigate('/admin/login');
         return;
       }
@@ -227,7 +231,7 @@ const AdminTires = () => {
   };
 
   const handleToggleActive = async (tire: Tire) => {
-    if (rawApiBaseUrl === undefined || !getToken()) {
+    if (rawApiBaseUrl === undefined) {
       return;
     }
 
@@ -241,7 +245,7 @@ const AdminTires = () => {
       });
 
       if (response.status === 401 || response.status === 403) {
-        localStorage.removeItem('adminToken');
+        await logout();
         navigate('/admin/login');
         return;
       }
@@ -264,12 +268,7 @@ const AdminTires = () => {
   };
 
   const handleLogout = async () => {
-    try {
-      await adminApiFetch('/api/admin/logout', { method: 'POST' });
-    } catch (error) {
-      // best-effort logout; still clear local token
-    }
-    localStorage.removeItem('adminToken');
+    await logout();
     navigate('/admin/login');
   };
 
