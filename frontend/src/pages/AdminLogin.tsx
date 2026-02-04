@@ -12,7 +12,8 @@ type LoginResponse = {
 const AdminLogin = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated } = useAuth(); // 使用 Context
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiBaseUrl = (rawApiBaseUrl ?? '').trim();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -31,7 +32,7 @@ const AdminLogin = () => {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!apiBaseUrl) {
+    if (rawApiBaseUrl === undefined) {
       setErrorMessage('API Base URL 未設定，請先設定 .env。');
       return;
     }

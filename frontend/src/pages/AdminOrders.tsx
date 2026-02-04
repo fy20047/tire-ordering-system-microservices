@@ -52,7 +52,7 @@ const installationLabel: Record<InstallationOption, string> = {
 
 const AdminOrders = () => {
   const navigate = useNavigate();
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   const getToken = () => localStorage.getItem('adminToken');
 
   const [orders, setOrders] = useState<AdminOrder[]>([]);
@@ -73,7 +73,7 @@ const AdminOrders = () => {
   }, [navigate]);
 
   const fetchOrders = async (nextFilters?: Filters) => {
-    if (!apiBaseUrl || !getToken()) {
+    if (rawApiBaseUrl === undefined || !getToken()) {
       return;
     }
 
@@ -146,7 +146,7 @@ const AdminOrders = () => {
   };
 
   const handleUpdateStatus = async (orderId: number) => {
-    if (!apiBaseUrl || !getToken()) {
+    if (rawApiBaseUrl === undefined || !getToken()) {
       return;
     }
 

@@ -42,7 +42,7 @@ const defaultFormState: TireFormState = {
 
 const AdminTires = () => {
   const navigate = useNavigate();
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   const getToken = () => localStorage.getItem('adminToken');
 
   const [tires, setTires] = useState<Tire[]>([]);
@@ -69,7 +69,7 @@ const AdminTires = () => {
   }, [navigate]);
 
   const fetchTires = async (nextFilters?: Filters) => {
-    if (!apiBaseUrl || !getToken()) {
+    if (rawApiBaseUrl === undefined || !getToken()) {
       return;
     }
 
@@ -166,7 +166,7 @@ const AdminTires = () => {
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!apiBaseUrl || !getToken()) {
+    if (rawApiBaseUrl === undefined || !getToken()) {
       return;
     }
 
@@ -227,7 +227,7 @@ const AdminTires = () => {
   };
 
   const handleToggleActive = async (tire: Tire) => {
-    if (!apiBaseUrl || !getToken()) {
+    if (rawApiBaseUrl === undefined || !getToken()) {
       return;
     }
 

@@ -14,7 +14,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     // isLoading 預設為 true，確保檢查完 Token 之前不渲染 App (避免畫面閃爍)
     const [isLoading, setIsLoading] = useState(true);
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+    const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+    const apiBaseUrl = (rawApiBaseUrl ?? '').trim();
 
     // 登入:接收 Token，存入記憶體變數，並更新狀態
     const login = (token: string) => {
@@ -28,7 +29,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsAuthenticated(false);
 
         // 呼叫後端移除 HttpOnly Cookie
-        if (apiBaseUrl) {
+        if (rawApiBaseUrl !== undefined) {
             try {
                 await fetch(`${apiBaseUrl}/api/admin/logout`, {
                     method: 'POST',
@@ -43,7 +44,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // App 啟動時的靜默換證 (Silent Refresh)
     useEffect(() => {
         const initAuth = async () => {
-            if (!apiBaseUrl) {
+            if (rawApiBaseUrl === undefined) {
                 console.error("API Base URL not configured");
                 setIsLoading(false);
                 return;

@@ -1,4 +1,5 @@
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined; // 讀 API Base，沒有設定就直接 throw，避免靜默錯誤
+const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+const apiBaseUrl = (rawApiBaseUrl ?? '').trim();
 
 type FetchOptions = RequestInit & { retry?: boolean };
 
@@ -16,7 +17,7 @@ export const setAccessToken = (token: string | null) => {
 const getAccessToken = () => accessToken;
 
 const refreshAccessToken = async (): Promise<boolean> => {
-  if (!apiBaseUrl) {
+  if (rawApiBaseUrl === undefined) {
     return false;
   }
   try {
@@ -50,7 +51,7 @@ export const adminApiFetch = async (
     input: string,
     options: FetchOptions = {}
 ): Promise<Response> => {
-  if (!apiBaseUrl) {
+  if (rawApiBaseUrl === undefined) {
     throw new Error('API base URL is not configured');
   }
 

@@ -32,7 +32,8 @@ const OrderPage = () => {
   const seriesParam = (searchParams.get('series') ?? '').trim();
   const sizeParam = (searchParams.get('size') ?? '').trim();
   const hasPrefill = Boolean(seriesParam || sizeParam);
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiBaseUrl = (rawApiBaseUrl ?? '').trim();
 
   const [tireOptions, setTireOptions] = useState<Tire[]>([]);
   const [selectedTireId, setSelectedTireId] = useState<number | null>(null);
@@ -87,7 +88,7 @@ const OrderPage = () => {
     let isActive = true;
 
     const loadTires = async () => {
-      if (!apiBaseUrl) {
+      if (rawApiBaseUrl === undefined) {
         setTireError('API Base URL 未設定，請先設定 .env。');
         setTireLoading(false);
         return;
@@ -200,7 +201,7 @@ const OrderPage = () => {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!apiBaseUrl) {
+    if (rawApiBaseUrl === undefined) {
       setSubmitStatus('error');
       setSubmitMessage('API Base URL 未設定，請先設定 .env。');
       return;

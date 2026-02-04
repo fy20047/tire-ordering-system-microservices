@@ -160,7 +160,8 @@ const isSizeMatch = (dbSize: string, promoSize: string) =>
 // const tireWidthOptions = ['155', '165', '175', '185', '195', '205', '215', '225', '235', '245', '255'];
 
 const Promotions = () => {
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  const apiBaseUrl = (rawApiBaseUrl ?? '').trim();
   const [selectedWidth] = useState<string>('');
   const [tireCatalog, setTireCatalog] = useState<TireCatalogItem[]>([]);
 
@@ -169,7 +170,7 @@ const Promotions = () => {
   }, []);
 
   useEffect(() => {
-    if (!apiBaseUrl) {
+    if (rawApiBaseUrl === undefined) {
       return;
     }
 
