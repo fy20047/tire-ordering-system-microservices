@@ -24,7 +24,7 @@ public class OrderService {
 
     // 收單
     public Order createOrder(CreateOrderCommand command) {
-        // 檢查 tireId/quantity/phone/deliveryAddress 等業務規則
+        // 驗證：檢查 tireId/quantity/phone/deliveryAddress 等業務規則
         validate(command);
 
         // 確認輪胎是否存在

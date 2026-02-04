@@ -26,7 +26,7 @@ public class JwtService {
         this.expirationSeconds = properties.expirationSeconds();
     }
 
-    // 寫登入流程（產 token）- 2. 發 token
+    // 寫登入流程 -> 發 token
     public String generateToken(Admin admin) {
         Instant now = Instant.now();
         return Jwts.builder()
@@ -34,7 +34,7 @@ public class JwtService {
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusSeconds(expirationSeconds)))
                 .claim("role", "ADMIN")
-                .signWith(secretKey)
+                .signWith(secretKey) // 防偽鋼印
                 .compact();
     }
 

@@ -13,10 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AdminService {
 
-    private final AdminRepository adminRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final AdminRepository adminRepository; // 確認這個人存不存在
+    private final PasswordEncoder passwordEncoder; // 確認密碼是否正確（比對雜湊值）
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
+
 
     public AdminService(
             AdminRepository adminRepository,
@@ -30,7 +31,8 @@ public class AdminService {
         this.refreshTokenService = refreshTokenService;
     }
 
-    // 寫登入流程（產 token）- 1. 驗證帳密
+    // 寫登入流程（產 token）
+    // 如果是好人，發給他 Access Token 及 Refresh Token，並把這兩個東西打包在 LoginResult 裡交給 Controller
     public LoginResult login(String username, String password) {
         Admin admin = adminRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid username or password"));

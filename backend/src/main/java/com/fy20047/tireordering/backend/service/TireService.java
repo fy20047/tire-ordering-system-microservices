@@ -16,16 +16,16 @@ public class TireService {
         this.tireRepository = tireRepository;
     }
 
+    // 負責把輪胎資料從資料庫撈出來給前端看 (getAllTires, getActiveTires)
     public List<Tire> getActiveTires() {
         return tireRepository.findActiveTires();
     }
-
     public List<Tire> getAllTires() {
         return tireRepository.findAll();
     }
 
     public List<Tire> searchTires(String brand, String series, String size, Boolean active) {
-        return tireRepository.search(normalize(brand), normalize(series), normalize(size), active);
+        return tireRepository.search(normalize(brand), normalize(series), normalize(size), active); // 資料清洗
     }
 
     // 將新的輪胎物件存入資料庫
@@ -34,7 +34,7 @@ public class TireService {
         return tireRepository.save(tire);
     }
 
-    // 根據 ID 撈出舊資料，然後逐一更新欄位
+    // 負責修改輪胎資訊，會根據 ID 撈出舊資料，然後逐一更新欄位
     @Transactional
     public Tire updateTire(Long id, Tire updated) {
         Tire existing = getTireById(id);
