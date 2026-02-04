@@ -17,5 +17,4 @@ security:
     refresh-expiration-seconds: ${JWT_REFRESH_EXPIRATION_SECONDS:1209600} # 14 days
     refresh-cookie-name: ${JWT_REFRESH_COOKIE_NAME:refreshToken}
     refresh-cookie-secure: ${JWT_REFRESH_COOKIE_SECURE:false}
-    refresh-cookie-samesite: ${JWT_REFRESH_COOKIE_SAMESITE:Lax}
-
+    refresh-cookie-same-site: ${JWT_REFRESH_COOKIE_SAME_SITE:Lax}
