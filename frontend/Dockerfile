@@ -19,6 +19,8 @@ RUN npm ci
 
 # 把剩下的前端原始碼複製進來
 COPY . .
+ARG VITE_API_BASE_URL=""
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 # 執行前端建置（Vite / React 會產生 dist/ 資料夾）
 RUN npm run build
 
