@@ -1,6 +1,8 @@
 .container {
   padding: 2rem;
   text-align: center;
+  width: 60%;
+  margin: 0 auto;
 }
 
 .hero {
@@ -67,6 +69,10 @@
 
 /* Responsive adjustments for search options */
 @media (max-width: 768px) {
+  .container {
+    width: 90%;
+  }
+
   .searchOption {
     flex-basis: 100%; /* Full width on smaller screens */
   }

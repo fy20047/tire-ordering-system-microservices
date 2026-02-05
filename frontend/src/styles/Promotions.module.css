@@ -1,6 +1,6 @@
 .container {
   padding: 2rem;
-  max-width: 1200px; /* Allow wider content */
+  max-width: 1600px; /* Allow wider content */
   margin: 0 auto;
 }
 
@@ -106,6 +106,7 @@
   flex-basis: 45%;
   min-width: 260px; /* Slightly reduced min-width */
   box-shadow: 0 1px 3px rgba(0,0,0,0.2); /* Smaller shadow */
+  text-align: center;
 }
 
 .serviceOptionTitle {
@@ -127,6 +128,7 @@
   list-style: none;
   padding-left: 0;
   margin-bottom: 0.3rem;
+  text-align: center;
 }
 
 .installationListSmall li {
@@ -139,7 +141,7 @@
   color: #aaa;
   font-size: 0.8rem; /* Reduced font size */
   text-align: center;
-  margin-top: 0.3rem;
+  margin: 0.35rem 0;
 }
 
 /* Style for the new pickup note, can be similar to infoNoteSmall or customized */
@@ -160,6 +162,8 @@
   font-weight: bold;
   color: #ffdd88;
   font-size: 0.95rem;
+  display: block;
+  margin-top: 0.25rem;
 }
 
 /* Promotions Grid */
@@ -167,6 +171,12 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); /* Slightly wider cards for two options */
   gap: 2rem;
+}
+
+@media (min-width: 1200px) {
+  .promotionsGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .promoCard {
@@ -205,15 +215,15 @@
 .promoTirePrice {
   color: #e0e0e0;
   font-size: 1.1rem;
-  margin-bottom: 1.25rem; /* Increased margin */
-  line-height: 1.5;
+  margin: 0.35rem 0;
+  line-height: 1.4;
   text-align: center; /* Add this line to center the tire price */
 }
 
 .priceValue { /* For tire price itself */
   font-weight: bold;
   color: #7fffd4;
-  font-size: 1.5rem; /* Increased from 1.2rem */
+  font-size: inherit;
 }
 
 /* Container for the two service options within a card */
@@ -235,6 +245,7 @@
   display: flex;
   flex-direction: column;
   align-items: center; /* Center content within option card */
+  text-align: center;
 }
 
 .serviceOptionCardTitle {
@@ -249,6 +260,7 @@
   color: #d3d3d3; /* Light gray for details */
   font-size: 0.9rem;
   margin-bottom: 0.4rem;
+  text-align: center;
 }
 
 .totalEstimate { /* For total price lines in options */
@@ -257,12 +269,15 @@
   margin-bottom: 0;
   margin-top: auto; /* Pushes to the bottom of the flex container */
   padding-top: 0.5rem;
+  text-align: center;
 }
 
 .totalPriceValue {
   font-weight: bold;
   color: #98fb98;
   font-size: 1.15rem;
+  display: block;
+  margin-top: 0.25rem;
 }
 
 /* Order Button Style */
