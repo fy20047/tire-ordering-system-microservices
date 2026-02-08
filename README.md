@@ -19,6 +19,19 @@ docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --build
 docker compose -f infra/docker-compose.prod.yml --env-file infra/.env up -d
 ```
 
+## 連線資訊 (Access URLs)
+### 本地建置版本 (infra/docker-compose.yml):
+- 前端首頁: http://localhost:5173/
+- 後台登入: http://localhost:5173/admin/login
+- 後端健康狀態: http://localhost:8080/health
+- 資料庫管理 (Adminer): http://localhost:8081/
+
+### GHCR 部署版本 (infra/docker-compose.prod.yml):
+- 前端首頁: http://localhost/
+- 後台登入: http://localhost/admin/login
+- 後端健康狀態: http://localhost:8080/health
+- 資料庫管理 (Adminer): http://localhost:8081/
+
 ## 停止服務 (Stop)
 本地開發環境：
 ```powershell
