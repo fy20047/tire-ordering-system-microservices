@@ -1,0 +1,119 @@
+name: CI # Workflow 的名稱，會顯示在 GitHub Actions 頁面上
+
+# 定義觸發時機
+on:
+  push:
+    branches: ["main"] # 當推送到 main 分支時觸發 (通常是 Merge 後)
+  pull_request:
+    branches: ["main"] # 當有 PR 要合併到 main 時觸發 (用來跑測試)
+  workflow_dispatch:   # 允許在 GitHub 網頁介面上手動按按鈕觸發
+
+# 全域環境變數設定
+env:
+  REGISTRY: ghcr.io # 指定使用 GitHub Container Registry
+  # 使用 GitHub Repository 名稱作為 Image 名稱 (fy20047/tire-ordering-system)
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # === 後端工作 ===
+  backend:
+    runs-on: ubuntu-latest # 使用最新的 Ubuntu 虛擬機環境
+    # 設定權限：讀取程式碼(contents: read) + 推送映像檔到儲存庫(packages: write)
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4 # 下載專案程式碼
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21" # Spring Boot 3.5 + Java 21
+          distribution: "temurin"
+          cache: maven # 自動快取 Maven 下載的套件，加速後續建置
+
+      - name: Run Backend Tests
+        working-directory: backend # 切換目錄到 backend 資料夾
+        run: ./mvnw -B test # 執行單元測試 (-B 代表 Batch mode，輸出較簡潔)
+
+      - name: Package Backend
+        working-directory: backend
+        # 打包成 JAR 檔，同時跳過測試 (因為上一步已經測過了)
+        # 這一步是用來確認 build 沒問題，或是給非多階段建置的 Dockerfile 使用
+        run: ./mvnw -B -DskipTests package
+
+      # === Docker 相關步驟 ===
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request' # 只有非 PR (即 Push 或手動) 才執行登入
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }} # 執行的人 (GitHub 帳號)
+          password: ${{ secrets.GITHUB_TOKEN }} # GitHub 自動產生的臨時權杖 (不需手動設定 Secret)
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3 # 設定 Docker 建置環境
+
+      - name: Build and push Backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend # Docker build 的上下文目錄
+          # 如果是 PR，只做 build (測試能否建置成功)；如果是 Push，則 build 並 push 到 Registry
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            # 標籤 1: latest (最新版)
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+            # 標籤 2: Commit SHA (用 Commit ID 當版本號，方便回溯)
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }}
+
+  # === 前端工作 ===
+  frontend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm # 自動快取 npm modules
+          cache-dependency-path: frontend/package-lock.json # 指定 lock file 位置以確保快取正確
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci # 使用 ci 指令而非 install，確保完全依照 package-lock.json 安裝，適合 CI 環境
+
+      - name: Run Frontend Lint
+        working-directory: frontend
+        run: npm run lint # 執行程式碼品質檢查
+
+      - name: Build Frontend
+        working-directory: frontend
+        run: npm run build # 編譯 React 專案 (產出 dist)
+
+      # === Docker 相關步驟 (與後端類似) ===
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
