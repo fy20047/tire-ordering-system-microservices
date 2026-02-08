@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: "jdbc:h2:mem:tire_shop_test;MODE=MariaDB;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
+    driver-class-name: org.h2.Driver
+    username: sa # System Administrator
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+security:
+  jwt:
+    secret: "0123456789abcdef0123456789abcdefbcdef01234bcdefbcbcdefbc567"
+    expiration-seconds: 3600
+    refresh-expiration-seconds: 1209600
+    refresh-cookie-name: refreshToken
+    refresh-cookie-secure: false
+    refresh-cookie-same-site: Lax
