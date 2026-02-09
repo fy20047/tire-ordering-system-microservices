@@ -64,9 +64,7 @@ jobs:
           # 如果是 PR，只做 build (測試能否建置成功)；如果是 Push，則 build 並 push 到 Registry
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            # 標籤 1: latest (最新版)
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
-            # 標籤 2: Commit SHA (用 Commit ID 當版本號，方便回溯)
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }}
 
   # === 前端工作 ===
