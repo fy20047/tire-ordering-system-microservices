@@ -54,15 +54,55 @@ docker login ghcr.io
 ```powershell
 kubectl create namespace tire-ordering
 ```
-### 2. 建立資料庫相關的 Secret (db-secret)
+### 2. 建立 Secret
+2-1. 建立資料庫相關的 Secret (db-secret)
 - 包含資料庫名稱、使用者帳號、密碼以及 Root 密碼
 - 要把 'changeme' 替換成想要設定的真實密碼
 ```powershell
 kubectl -n tire-ordering create secret generic db-secret --from-literal=MARIADB_DATABASE=tire_shop --from-literal=MARIADB_USER=app --from-literal=MARIADB_PASSWORD=changeme --from-literal=MARIADB_ROOT_PASSWORD=changeme
 ```
-### 3. 建立應用程式相關的 Secret (app-secret)
+2-2. 建立應用程式相關的 Secret (app-secret)
 - 包含 JWT 加密金鑰、管理員帳號與密碼
 - 'changeme' 也要替換成想要設定的真實密碼
 ```powershell
 kubectl -n tire-ordering create secret generic app-secret --from-literal=JWT_SECRET=changeme --from-literal=ADMIN_USERNAME=admin --from-literal=ADMIN_PASSWORD=changeme
+```
+
+## Kubernetes (Minikube) 指令
+### 1. 啟動cluster 
+啟動 Minikube (使用 Docker 作為 Driver)，並切換 kubectl context 到 minikube 
+```powershell
+minikube start --driver=docker
+kubectl config use-context minikube
+```
+### 2. 部署應用程式
+使用 Kustomize 部署會用到的 K8s 資源 (DB, Backend, Frontend)，第一次部署前，要先確定有手動建立 Secret (上方的 db-secret, app-secret)
+```powershell
+# Apply manifests
+kubectl apply -k k8s/overlays/minikube
+```
+### 3. 檢查狀態
+部署後確認所有 Pods 是否都成功啟動 (Running)
+```powershell
+# Check status
+kubectl -n tire-ordering get pods
+kubectl -n tire-ordering get svc
+```
+### 4. 開啟前端頁面
+Minikube 會自動分配一個 IP 和 Port，用下方指令獲取網址
+```powershell
+minikube service frontend -n tire-ordering --url
+```
+### 5. 修改後重啟
+#### 1) commit + push 後，CI 會把 image 推到 GHCR，tag = 該 commit 的 SHA
+#### 2) 此時要把 k8s/overlays/minikube/kustomization.yaml 裡的 newTag 改成那個 SHA
+#### 3) 執行套用 
+```powershell
+kubectl apply -k k8s/overlays/minikube
+```
+#### 備註
+如果已經改 tag，就不需要 rollout restart，只有在 tag 沒變（像是用 latest）時才需要：
+```powershell
+kubectl -n tire-ordering rollout restart deployment frontend
+kubectl -n tire-ordering rollout restart deployment backend
 ```
