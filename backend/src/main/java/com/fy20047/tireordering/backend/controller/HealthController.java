@@ -21,7 +21,7 @@ public class HealthController {
         this.dataSource = dataSource;
     }
 
-    @GetMapping("/health")
+    @GetMapping({"/health", "/api/health"})
     public ResponseEntity<Map<String, Object>> health() {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", Instant.now().toString());
