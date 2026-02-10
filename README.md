@@ -89,7 +89,7 @@ kubectl -n tire-ordering get pods
 kubectl -n tire-ordering get svc
 ```
 ### 4. 開啟前端頁面
-Minikube 會自動分配一個 IP 和 Port，用下方指令獲取網址
+Minikube 會自動分配一個 IP 和 Port，用下方指令獲取網站網址
 ```powershell
 minikube service frontend -n tire-ordering --url
 ```
@@ -105,4 +105,36 @@ kubectl apply -k k8s/overlays/minikube
 ```powershell
 kubectl -n tire-ordering rollout restart deployment frontend
 kubectl -n tire-ordering rollout restart deployment backend
+```
+
+## ArgoCD 部署 (Minikube)
+最後用 ArgoCD 🐙 進行 GitOps 自動化部署
+
+### 1. 安裝 ArgoCD
+```powershell
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+# 如果遇到 "CRD annotation too long" 錯誤，改用 Server-side Apply 安裝：
+# kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --server-side --force-conflicts
+```
+### 2. 確認安裝狀態，等待所有 Pods 變成 Running
+```powershell
+kubectl -n argocd get pods
+```
+### 3. 部署 Application 設定
+告訴 ArgoCD 開始監控這個專案 (namespace)
+```powershell
+kubectl apply -f argocd/app.yaml
+```
+### 4. 開啟 ArgoCD UI
+這邊使用 Port-forward 將 UI 對應到本機 8082 Port，443 是 ArgoCD Server Service 在 cluster 內的 Port
+```powershell
+kubectl -n argocd port-forward svc/argocd-server 8082:443
+```
+接著就可以用瀏覽器開啟：https://localhost:8082 (忽略憑證不安全警告)
+
+### 5. 取得登入密碼 (PowerShell)
+```powershell
+$pwd = kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}"
+[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($pwd))
 ```
