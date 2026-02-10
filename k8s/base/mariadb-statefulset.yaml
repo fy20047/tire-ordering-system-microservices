@@ -47,6 +47,26 @@ spec:
           volumeMounts:
             - name: mariadb-data
               mountPath: /var/lib/mysql
+          readinessProbe:
+            exec:
+              command:
+                - sh # Linux 的 Shell 作為執行者
+                - -c
+                - mariadb-admin ping -h 127.0.0.1 -u root -p$MARIADB_ROOT_PASSWORD # MariaDB 內建的 Ping 工具，回傳 0 代表活著
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - mariadb-admin ping -h 127.0.0.1 -u root -p$MARIADB_ROOT_PASSWORD
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
   volumeClaimTemplates:
     - metadata:
         name: mariadb-data
