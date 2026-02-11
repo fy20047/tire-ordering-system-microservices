@@ -5,6 +5,8 @@ resources:
   - namespace.yaml
   - ingress.yaml
   - app-config.yaml
+  - app-sealedsecret.yaml
+  - db-sealedsecret.yaml
   - hpa-backend.yaml
   - hpa-frontend.yaml
   - pdb-backend.yaml

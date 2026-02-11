@@ -24,16 +24,6 @@ spec:
             - secretRef:
                 name: app-secret # 把名為 app-secret 的 Secret 裡所有的 Key 全部變成環境變數
           env:
-            - name: DB_HOST
-              value: mariadb # mariadb 是 K8s Service 的名字，K8s 會自動轉成 IP
-            - name: DB_PORT
-              value: "3306"
-            # 從 Secret 裡面抽特定的值出來並改名
-            - name: DB_NAME # 給 Java 程式的變數名
-              valueFrom:
-                secretKeyRef:
-                  name: db-secret # 去找 cluster 內叫 db-secret 的東西
-                  key: MARIADB_DATABASE # 拿裡面叫 MARIADB_DATABASE 的值
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:

@@ -68,6 +68,73 @@ kubectl -n tire-ordering create secret generic db-secret --from-literal=MARIADB_
 kubectl -n tire-ordering create secret generic app-secret --from-literal=JWT_SECRET=changeme --from-literal=ADMIN_USERNAME=admin --from-literal=ADMIN_PASSWORD=changeme
 ```
 
+## Sealed Secrets (Git-safe secrets)
+Purpose: keep encrypted secrets in Git. Only the Sealed Secrets controller inside the cluster can unseal them into normal Secrets.
+
+### Why SealedSecret?
+- The SealedSecret contains `encryptedData`, not raw values.
+- Only the controller's private key can decrypt it (cluster-specific).
+
+### Install controller (cluster side)
+```powershell
+kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.1/controller.yaml
+```
+If you hit CRD annotation errors, retry with:
+```powershell
+kubectl apply --server-side --force-conflicts -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.1/controller.yaml
+```
+Controller runs in `kube-system`, so `kubeseal` must use `--controller-namespace kube-system`.
+
+### Install kubeseal (local)
+What failed:
+- `choco install kubeseal` failed (package not found).
+
+Working method (manual download from GitHub release):
+```powershell
+$version = "0.27.1"
+$dst = "C:\path\to\repo\tools\kubeseal"
+New-Item -ItemType Directory -Force -Path $dst | Out-Null
+Invoke-WebRequest -Uri "https://github.com/bitnami-labs/sealed-secrets/releases/download/v$version/kubeseal-$version-windows-amd64.tar.gz" -OutFile "$dst\kubeseal-$version-windows-amd64.tar.gz"
+tar -xf "$dst\kubeseal-$version-windows-amd64.tar.gz" -C $dst
+$dst\kubeseal.exe --version
+```
+Tip: keep `tools/kubeseal/` local (do not commit the binary).
+
+### Create SealedSecret from existing Secrets
+```powershell
+kubectl -n tire-ordering get secret app-secret -o yaml `
+  | .\tools\kubeseal\kubeseal.exe --controller-namespace kube-system --format yaml `
+  > k8s/overlays/minikube/app-sealedsecret.yaml
+
+kubectl -n tire-ordering get secret db-secret -o yaml `
+  | .\tools\kubeseal\kubeseal.exe --controller-namespace kube-system --format yaml `
+  > k8s/overlays/minikube/db-sealedsecret.yaml
+```
+
+### Add to kustomization
+```yaml
+resources:
+  - app-sealedsecret.yaml
+  - db-sealedsecret.yaml
+```
+
+### Apply and verify
+```powershell
+kubectl apply -k k8s/overlays/minikube
+kubectl -n tire-ordering get sealedsecrets
+kubectl -n tire-ordering get secrets | findstr secret
+```
+
+### Optional: remove plaintext Secrets (SealedSecret will recreate them)
+```powershell
+kubectl -n tire-ordering delete secret app-secret db-secret
+kubectl -n tire-ordering rollout restart deployment backend
+```
+
+### Notes
+- `encryptedData` looks like random text because it is encrypted.
+- To change values, re-run `kubeseal` and re-apply.
+
 ## Kubernetes (Minikube) 指令
 ### 1. 啟動cluster 
 啟動 Minikube (使用 Docker 作為 Driver)，並切換 kubectl context 到 minikube 
