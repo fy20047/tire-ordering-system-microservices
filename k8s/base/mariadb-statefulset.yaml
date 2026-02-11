@@ -24,9 +24,9 @@ spec:
           env:
             - name: MARIADB_DATABASE
               valueFrom:
-                secretKeyRef:
-                  name: db-secret
-                  key: MARIADB_DATABASE
+                configMapKeyRef:
+                  name: app-config
+                  key: DB_NAME
             - name: MARIADB_USER
               valueFrom:
                 secretKeyRef:

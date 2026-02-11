@@ -4,13 +4,23 @@ resources:
   - ../../base
   - namespace.yaml
   - ingress.yaml
+  - app-config.yaml
+  - hpa-backend.yaml
+  - hpa-frontend.yaml
+  - pdb-backend.yaml
+  - pdb-frontend.yaml
+  - resourcequota.yaml
+  - limitrange.yaml
 namespace: tire-ordering
 images:
   - name: ghcr.io/fy20047/tire-ordering-system/backend
-    newTag: 8996fe806b7c62d5d0b4450482fc4a4086f5c2ce
+    newTag: 72715ca964735a4e4eb8ce6bb87d4088afaaee9b
   - name: ghcr.io/fy20047/tire-ordering-system/frontend
-    newTag: 8996fe806b7c62d5d0b4450482fc4a4086f5c2ce
+    newTag: 72715ca964735a4e4eb8ce6bb87d4088afaaee9b
 patches:
   - path: frontend-nodeport.yaml
   - path: backend-scale.yaml
   - path: frontend-scale.yaml
+  - path: backend-configmap-env.yaml
+  - path: backend-resources.yaml
+  - path: frontend-resources.yaml
