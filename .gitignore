@@ -36,3 +36,6 @@ frontend/README.txt
 frontend/node_modules/
 frontend/dist/
 **/tsconfig.tsbuildinfo
+
+# Local tools
+tools/

@@ -117,3 +117,37 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
+            
+  update-manifest:
+    needs: [ backend, frontend ]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Update Kubernetes Manifest
+        run: |
+          cd k8s/overlays/minikube
+          kustomize edit set image ghcr.io/${{ github.repository }}/backend:${{ github.sha }}
+          kustomize edit set image ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [[ -n $(git status -s) ]]; then
+            git add k8s/overlays/minikube/kustomization.yaml
+            git commit -m "chore(ci): update image tag to ${GITHUB_SHA::7} [skip ci]"
+            git push
+          else
+            echo "No changes to commit"
+          fi

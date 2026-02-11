@@ -68,28 +68,25 @@ kubectl -n tire-ordering create secret generic db-secret --from-literal=MARIADB_
 kubectl -n tire-ordering create secret generic app-secret --from-literal=JWT_SECRET=changeme --from-literal=ADMIN_USERNAME=admin --from-literal=ADMIN_PASSWORD=changeme
 ```
 
-## Sealed Secrets (Git-safe secrets)
-Purpose: keep encrypted secrets in Git. Only the Sealed Secrets controller inside the cluster can unseal them into normal Secrets.
+## Sealed Secrets (Git 安全加密金鑰)
+目的：允許將已加密的 Secret 存放在 Git 中，只有叢集內的 Sealed Secrets Controller 才能將其解密還原為普通的 Kubernetes Secrets
 
 ### Why SealedSecret?
-- The SealedSecret contains `encryptedData`, not raw values.
-- Only the controller's private key can decrypt it (cluster-specific).
+- SealedSecret 儲存的是 encryptedData (加密資料)，而非原始明文
+- 只有 Controller 擁有的私鑰才能解密這些資料 (僅限該叢集有效)
 
-### Install controller (cluster side)
+### 安裝 Controller (cluster side)
 ```powershell
 kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.1/controller.yaml
 ```
-If you hit CRD annotation errors, retry with:
+如果遇到 CRD 註解錯誤 (annotation errors), 用下面這個：
 ```powershell
 kubectl apply --server-side --force-conflicts -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.1/controller.yaml
 ```
-Controller runs in `kube-system`, so `kubeseal` must use `--controller-namespace kube-system`.
+Controller 預設運行在 kube-system，因此 kubeseal 指令需加上 --controller-namespace kube-system
 
-### Install kubeseal (local)
-What failed:
-- `choco install kubeseal` failed (package not found).
-
-Working method (manual download from GitHub release):
+### 安裝 kubeseal (local)
+手動從 GitHub Release 下載：
 ```powershell
 $version = "0.27.1"
 $dst = "C:\path\to\repo\tools\kubeseal"
@@ -98,9 +95,9 @@ Invoke-WebRequest -Uri "https://github.com/bitnami-labs/sealed-secrets/releases/
 tar -xf "$dst\kubeseal-$version-windows-amd64.tar.gz" -C $dst
 $dst\kubeseal.exe --version
 ```
-Tip: keep `tools/kubeseal/` local (do not commit the binary).
+Tip: 將 tools/kubeseal/ 設為本地忽略 (不要將二進位執行檔 commit 到 Git)
 
-### Create SealedSecret from existing Secrets
+### 從現有 Secret 建立 SealedSecret
 ```powershell
 kubectl -n tire-ordering get secret app-secret -o yaml `
   | .\tools\kubeseal\kubeseal.exe --controller-namespace kube-system --format yaml `
@@ -111,29 +108,29 @@ kubectl -n tire-ordering get secret db-secret -o yaml `
   > k8s/overlays/minikube/db-sealedsecret.yaml
 ```
 
-### Add to kustomization
+### 加入到 kustomization
 ```yaml
 resources:
   - app-sealedsecret.yaml
   - db-sealedsecret.yaml
 ```
 
-### Apply and verify
+### 套用跟驗證
 ```powershell
 kubectl apply -k k8s/overlays/minikube
 kubectl -n tire-ordering get sealedsecrets
 kubectl -n tire-ordering get secrets | findstr secret
 ```
 
-### Optional: remove plaintext Secrets (SealedSecret will recreate them)
+### Optional: 移除明文 Secret (SealedSecret 會自動重新建立它們)
 ```powershell
 kubectl -n tire-ordering delete secret app-secret db-secret
 kubectl -n tire-ordering rollout restart deployment backend
 ```
 
-### Notes
-- `encryptedData` looks like random text because it is encrypted.
-- To change values, re-run `kubeseal` and re-apply.
+### 備註
+- `encryptedData` 看起來像亂碼是正常的，因為它已經被加密
+- 若要修改數值，需重新執行 kubeseal 並重新套用 (Apply)
 
 ## Kubernetes (Minikube) 指令
 ### 1. 啟動cluster 
