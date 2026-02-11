@@ -138,3 +138,15 @@ kubectl -n argocd port-forward svc/argocd-server 8082:443
 $pwd = kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}"
 [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($pwd))
 ```
+
+## K8s 容量控制 (Minikube)
+- HPA (HorizontalPodAutoscaling)：根據 CPU 使用率自動伸縮前後端 (最少 3 個，最多 6 個)
+- PDB (PodDisruptionBudget)：在中斷期間 (如維護時) 確保前後端至少各有 2 個 Pod 可用
+- ResourceQuota: 限制 Namespace 中 CPU、記憶體與 Pod 的總數量上限
+- LimitRange: 設定容器的預設 CPU/記憶體請求 (requests) 與限制 (limits)
+- 在專案前後端的 Deployment 都定義資源請求與限制 (Resource requests/limits)
+
+啟用 HPA 所需的 metrics server:
+```powershell
+minikube addons enable metrics-server
+```
