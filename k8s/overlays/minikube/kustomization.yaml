@@ -3,11 +3,14 @@ kind: Kustomization
 resources:
   - ../../base
   - namespace.yaml
+  - ingress.yaml
 namespace: tire-ordering
 images:
   - name: ghcr.io/fy20047/tire-ordering-system/backend
-    newTag: 16421c01f7bb078c6236283d6a5f102df10049a6
+    newTag: 8996fe806b7c62d5d0b4450482fc4a4086f5c2ce
   - name: ghcr.io/fy20047/tire-ordering-system/frontend
-    newTag: 16421c01f7bb078c6236283d6a5f102df10049a6
+    newTag: 8996fe806b7c62d5d0b4450482fc4a4086f5c2ce
 patches:
   - path: frontend-nodeport.yaml
+  - path: backend-scale.yaml
+  - path: frontend-scale.yaml
