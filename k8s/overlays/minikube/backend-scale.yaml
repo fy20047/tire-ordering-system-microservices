@@ -3,8 +3,8 @@ kind: Deployment
 metadata:
   name: backend
 spec:
-  replicas: 2
-  revisionHistoryLimit: 2
+  replicas: 3
+  revisionHistoryLimit: 1
   minReadySeconds: 5
   strategy:
     type: RollingUpdate
