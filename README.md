@@ -1,216 +1,74 @@
-# tire-ordering-system (輪胎訂購系統)
+# Tire Ordering System (輪胎訂購系統)
 
-## 前置需求 (Prereqs)
-- 必須安裝 Docker Desktop
+本專案涵蓋了從應用程式開發（Spring Boot + React）、容器化（Docker）、Docker Compose 到生產環境部署（Kubernetes + ArgoCD）的所有環節。
 
-## 專案設定 (Setup)
-1) 複製一份 `infra/.env.example` 並重新命名為 `infra/.env`
-2) 開啟 `.env` 填入必要的變數值（例如：資料庫密碼、管理員帳號密碼、JWT Secret 等）
+## 專案總覽 (Project Overview)
 
-## 啟動 (本地開發 / Local build)
-使用本地的 `Dockerfile` 重新建置映像檔：
-```powershell
-docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --build
-```
+- **功能目標**：提供顧客瀏覽輪胎、下訂單的前台，以及管理員管理訂單、輪胎庫存的後台。
+- **核心技術**：Java 21, Spring Boot, React, TypeScript, Docker, Kubernetes, GitHub Actions, ArgoCD。
+- 專案實作重點不僅在於業務邏輯的實現，更在於建構一套可擴展、高可用且自動化的 DevOps 架構。
 
-## 啟動 (正式部署 / 從 GHCR 拉取)
-從 GitHub Container Registry (GHCR) 下載映像檔來執行：
-```powershell
-docker compose -f infra/docker-compose.prod.yml --env-file infra/.env up -d
-```
+## 技術棧 (Tech Stack)
+| Category | Technologies | 
+|----------|--------------| 
+| **Backend** | Java 21, Spring Boot 3, Spring Security, JPA, Lombok | 
+| **Frontend** | React 18, TypeScript, Vite, CSS Modules, Nginx | 
+| **Database** | MariaDB | 
+| **DevOps** | Docker, Kubernetes (Minikube), GitHub Actions, ArgoCD | 
+| **Tools** | Maven, npm, Kustomize系統架構 (System Architecture)|
 
-## 連線資訊 (Access URLs)
-### 本地建置版本 (infra/docker-compose.yml):
-- 前端首頁: http://localhost:5173/
-- 後台登入: http://localhost:5173/admin/login
-- 後端健康狀態: http://localhost:8080/health
-- 資料庫管理 (Adminer): http://localhost:8081/
+### 1. 後端 (Backend)
+* **資料庫存取**：使用 Spring Data JPA 搭配 MariaDB，並透過 K8s Secret 安全管理連線憑證。
+* **API 設計**：
+    * 標準 RESTful API，例如 `OrderController` 接收 `CreateOrderRequest` DTO，經過驗證 (`@Valid`) 後轉交 Service 層處理。
+    * 包含 Health Check 接口 (`/api/health`) 供 K8s Probe 使用。
+* **安全性設計**：
+    * 使用 **Spring Security** 搭配 **JWT** 機制。
+    * 實作 **雙 Token 機制**：實作了 Access Token (短效期) + Refresh Token (長效期，存於 HttpOnly Cookie) 的安全驗證流程。
+    * `SecurityConfig` 設定了公開 API (`/api/tires`, `/api/orders`) 與管理員 API (`/api/admin/**`) 的權限隔離。
 
-### GHCR 部署版本 (infra/docker-compose.prod.yml):
-- 前端首頁: http://localhost/
-- 後台登入: http://localhost/admin/login
-- 後端健康狀態: http://localhost:8080/health
-- 資料庫管理 (Adminer): http://localhost:8081/
+### 2. 前端 (Frontend)
+* **路由管理**：使用 `react-router-dom`，區分公開頁面（首頁、促銷、訂購）與後台管理頁面（登入、訂單管理、庫存管理）。
+* **API 封裝**：
+    * `adminApi.ts` 封裝了 `fetch` 請求，實作了 **自動刷新 Token (Silent Refresh)** 的機制。
+    * 當 Access Token 過期 (401/403) 時自動透過 Refresh Token 換發新憑證並重試請求，且 Access Token 僅存在記憶體中。
+* **開發體驗**：使用 Vite 進行快速建置，並透過 ESLint 維持程式碼品質。
 
-## 停止服務 (Stop)
-本地開發環境：
-```powershell
-docker compose -f infra/docker-compose.yml down
-```
-正式部署環境：
-```powershell
-docker compose -f infra/docker-compose.prod.yml down
-```
+### 3. 容器化與開發環境 (Docker & Infrastructure)
+- **Docker 建置 (Multi-stage Build)**：
+    - **Backend**：分為 `build` (Maven 編譯) 與 `runtime` (輕量化 JRE) 兩階段。
+    - **Frontend**：分為 `build` (Node.js 編譯) 與 `runtime` (Nginx 伺服器) 兩階段，將 React 產出的靜態檔交由 Nginx 託管。
+- **本地開發 (Docker Compose)**：
+    - `docker-compose.yml` 定義了 `mariadb`, `adminer` (資料庫管理介面), `backend`, `frontend` 四個服務，讓開發者可以一鍵啟動完整的本地環境。
 
-## 注意事項 (Notes)
-- 如果 GHCR 映像檔設定為 Private (私有)，執行前需先登入：
-```powershell
-docker login ghcr.io
-```
+### 4. Kubernetes 部署架構 (K8s)
+#### 本專案採用 **Kustomize** 進行環境配置管理。
+- **Base 層**：定義通用的 Deployment 和 Service。
+    - Backend Deployment 設定了 `readinessProbe` 和 `livenessProbe`，確保 Pod 健康狀態。
+    - 使用 `envFrom` 讀取 Secret (如 `app-secret`)，並透過環境變數注入資料庫帳密。
+- **Overlays 層 (Minikube)**：針對特定環境的覆寫。
+    - **HPA (Horizontal Pod Autoscaler)**：根據負載自動擴縮。
+    - **PDB (Pod Disruption Budget)**：確保在維護時維持最少可用 Pod 數量。
+    - **Ingress**：使用 Nginx Ingress Controller，設定域名 `kuang-i-tire` 轉發流量至 Frontend Service。
 
-## Kubernetes Secrets (Minikube 環境)
-在部署 `k8s/overlays/minikube` 之前必須先建立好 Secret
-### 1. 創建 Namespace
-```powershell
-kubectl create namespace tire-ordering
-```
-### 2. 建立 Secret
-2-1. 建立資料庫相關的 Secret (db-secret)
-- 包含資料庫名稱、使用者帳號、密碼以及 Root 密碼
-- 要把 'changeme' 替換成想要設定的真實密碼
-```powershell
-kubectl -n tire-ordering create secret generic db-secret --from-literal=MARIADB_DATABASE=tire_shop --from-literal=MARIADB_USER=app --from-literal=MARIADB_PASSWORD=changeme --from-literal=MARIADB_ROOT_PASSWORD=changeme
-```
-2-2. 建立應用程式相關的 Secret (app-secret)
-- 包含 JWT 加密金鑰、管理員帳號與密碼
-- 'changeme' 也要替換成想要設定的真實密碼
-```powershell
-kubectl -n tire-ordering create secret generic app-secret --from-literal=JWT_SECRET=changeme --from-literal=ADMIN_USERNAME=admin --from-literal=ADMIN_PASSWORD=changeme
-```
+### 5. CI/CD Pipeline
+- **CI (GitHub Actions)**：自動化測試、建置 Docker Image、推送至 GHCR，並自動更新 K8s Manifest 中的 Image Tag。
+- **CD (ArgoCD)**：監聽 Git Repository 變更，自動同步 (Sync) 並部署至 K8s Cluster，具備自我修復 (Self-Healing) 能力。
 
-## Sealed Secrets (Git 安全加密金鑰)
-目的：允許將已加密的 Secret 存放在 Git 中，只有叢集內的 Sealed Secrets Controller 才能將其解密還原為普通的 Kubernetes Secrets
+## 如何開始 (Getting Started)
 
-### Why SealedSecret?
-- SealedSecret 儲存的是 encryptedData (加密資料)，而非原始明文
-- 只有 Controller 擁有的私鑰才能解密這些資料 (僅限該叢集有效)
+- 在本地環境啟動專案（Docker Compose）或部署至 Kubernetes 的詳細步驟，請參閱 **SETUP_GUIDE.md** ：
 
-### 安裝 Controller (cluster side)
-```powershell
-kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.1/controller.yaml
-```
-如果遇到 CRD 註解錯誤 (annotation errors), 用下面這個：
-```powershell
-kubectl apply --server-side --force-conflicts -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.1/controller.yaml
-```
-Controller 預設運行在 kube-system，因此 kubeseal 指令需加上 --controller-namespace kube-system
 
-### 安裝 kubeseal (local)
-手動從 GitHub Release 下載：
-```powershell
-$version = "0.27.1"
-$dst = "C:\path\to\repo\tools\kubeseal"
-New-Item -ItemType Directory -Force -Path $dst | Out-Null
-Invoke-WebRequest -Uri "https://github.com/bitnami-labs/sealed-secrets/releases/download/v$version/kubeseal-$version-windows-amd64.tar.gz" -OutFile "$dst\kubeseal-$version-windows-amd64.tar.gz"
-tar -xf "$dst\kubeseal-$version-windows-amd64.tar.gz" -C $dst
-$dst\kubeseal.exe --version
-```
-Tip: 將 tools/kubeseal/ 設為本地忽略 (不要將二進位執行檔 commit 到 Git)
+### 📂 目錄結構摘要
 
-### 從現有 Secret 建立 SealedSecret
-```powershell
-kubectl -n tire-ordering get secret app-secret -o yaml `
-  | .\tools\kubeseal\kubeseal.exe --controller-namespace kube-system --format yaml `
-  > k8s/overlays/minikube/app-sealedsecret.yaml
-
-kubectl -n tire-ordering get secret db-secret -o yaml `
-  | .\tools\kubeseal\kubeseal.exe --controller-namespace kube-system --format yaml `
-  > k8s/overlays/minikube/db-sealedsecret.yaml
-```
-
-### 加入到 kustomization
-```yaml
-resources:
-  - app-sealedsecret.yaml
-  - db-sealedsecret.yaml
-```
-
-### 套用跟驗證
-```powershell
-kubectl apply -k k8s/overlays/minikube
-kubectl -n tire-ordering get sealedsecrets
-kubectl -n tire-ordering get secrets | findstr secret
-```
-
-### Optional: 移除明文 Secret (SealedSecret 會自動重新建立它們)
-```powershell
-kubectl -n tire-ordering delete secret app-secret db-secret
-kubectl -n tire-ordering rollout restart deployment backend
-```
-
-### 備註
-- `encryptedData` 看起來像亂碼是正常的，因為它已經被加密
-- 若要修改數值，需重新執行 kubeseal 並重新套用 (Apply)
-
-## Kubernetes (Minikube) 指令
-### 1. 啟動cluster 
-啟動 Minikube (使用 Docker 作為 Driver)，並切換 kubectl context 到 minikube 
-```powershell
-minikube start --driver=docker
-kubectl config use-context minikube
-```
-### 2. 部署應用程式
-使用 Kustomize 部署會用到的 K8s 資源 (DB, Backend, Frontend)，第一次部署前，要先確定有手動建立 Secret (上方的 db-secret, app-secret)
-```powershell
-# Apply manifests
-kubectl apply -k k8s/overlays/minikube
-```
-### 3. 檢查狀態
-部署後確認所有 Pods 是否都成功啟動 (Running)
-```powershell
-# Check status
-kubectl -n tire-ordering get pods
-kubectl -n tire-ordering get svc
-```
-### 4. 開啟前端頁面
-Minikube 會自動分配一個 IP 和 Port，用下方指令獲取網站網址
-```powershell
-minikube service frontend -n tire-ordering --url
-```
-### 5. 修改後重啟
-#### 1) commit + push 後，CI 會把 image 推到 GHCR，tag = 該 commit 的 SHA
-#### 2) 此時要把 k8s/overlays/minikube/kustomization.yaml 裡的 newTag 改成那個 SHA
-#### 3) 執行套用 
-```powershell
-kubectl apply -k k8s/overlays/minikube
-```
-#### 備註
-如果已經改 tag，就不需要 rollout restart，只有在 tag 沒變（像是用 latest）時才需要：
-```powershell
-kubectl -n tire-ordering rollout restart deployment frontend
-kubectl -n tire-ordering rollout restart deployment backend
-```
-
-## ArgoCD 部署 (Minikube)
-最後用 ArgoCD 🐙 進行 GitOps 自動化部署
-
-### 1. 安裝 ArgoCD
-```powershell
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-# 如果遇到 "CRD annotation too long" 錯誤，改用 Server-side Apply 安裝：
-# kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --server-side --force-conflicts
-```
-### 2. 確認安裝狀態，等待所有 Pods 變成 Running
-```powershell
-kubectl -n argocd get pods
-```
-### 3. 部署 Application 設定
-告訴 ArgoCD 開始監控這個專案 (namespace)
-```powershell
-kubectl apply -f argocd/app.yaml
-```
-### 4. 開啟 ArgoCD UI
-這邊使用 Port-forward 將 UI 對應到本機 8082 Port，443 是 ArgoCD Server Service 在 cluster 內的 Port
-```powershell
-kubectl -n argocd port-forward svc/argocd-server 8082:443
-```
-接著就可以用瀏覽器開啟：https://localhost:8082 (忽略憑證不安全警告)
-
-### 5. 取得登入密碼 (PowerShell)
-```powershell
-$pwd = kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}"
-[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($pwd))
-```
-
-## K8s 容量控制 (Minikube)
-- HPA (HorizontalPodAutoscaling)：根據 CPU 使用率自動伸縮前後端 (最少 3 個，最多 6 個)
-- PDB (PodDisruptionBudget)：在中斷期間 (如維護時) 確保前後端至少各有 2 個 Pod 可用
-- ResourceQuota: 限制 Namespace 中 CPU、記憶體與 Pod 的總數量上限
-- LimitRange: 設定容器的預設 CPU/記憶體請求 (requests) 與限制 (limits)
-- 在專案前後端的 Deployment 都定義資源請求與限制 (Resource requests/limits)
-
-啟用 HPA 所需的 metrics server:
-```powershell
-minikube addons enable metrics-server
+```text
+├── backend/          # Spring Boot 後端原始碼
+├── frontend/         # React 前端原始碼
+├── infra/            # Docker Compose 本地開發配置
+├── k8s/              # Kubernetes Manifests (Kustomize)
+│   ├── base/         # 通用配置
+│   └── overlays/     # 環境特定配置 (Minikube)
+├── argocd/           # ArgoCD Application 定義檔
+└── .github/          # GitHub Actions CI/CD 流程
 ```
