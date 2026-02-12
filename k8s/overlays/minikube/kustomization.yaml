@@ -1,28 +1,28 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ../../base
-  - namespace.yaml
-  - ingress.yaml
-  - app-config.yaml
-  - app-sealedsecret.yaml
-  - db-sealedsecret.yaml
-  - hpa-backend.yaml
-  - hpa-frontend.yaml
-  - pdb-backend.yaml
-  - pdb-frontend.yaml
-  - resourcequota.yaml
-  - limitrange.yaml
+- ../../base
+- namespace.yaml
+- ingress.yaml
+- app-config.yaml
+- app-sealedsecret.yaml
+- db-sealedsecret.yaml
+- hpa-backend.yaml
+- hpa-frontend.yaml
+- pdb-backend.yaml
+- pdb-frontend.yaml
+- resourcequota.yaml
+- limitrange.yaml
 namespace: tire-ordering
 images:
-  - name: ghcr.io/fy20047/tire-ordering-system/backend
-    newTag: 9d99b45537c577d5d9f8a733a89ce6f5ff80c655
-  - name: ghcr.io/fy20047/tire-ordering-system/frontend
-    newTag: 9d99b45537c577d5d9f8a733a89ce6f5ff80c655
+- name: ghcr.io/fy20047/tire-ordering-system/backend
+  newTag: 133d44bc102f884267dba546ca94ad69d08a1061
+- name: ghcr.io/fy20047/tire-ordering-system/frontend
+  newTag: 133d44bc102f884267dba546ca94ad69d08a1061
 patches:
-  - path: frontend-nodeport.yaml
-  - path: backend-scale.yaml
-  - path: frontend-scale.yaml
-  - path: backend-configmap-env.yaml
-  - path: backend-resources.yaml
-  - path: frontend-resources.yaml
+- path: frontend-nodeport.yaml
+- path: backend-scale.yaml
+- path: frontend-scale.yaml
+- path: backend-configmap-env.yaml
+- path: backend-resources.yaml
+- path: frontend-resources.yaml
