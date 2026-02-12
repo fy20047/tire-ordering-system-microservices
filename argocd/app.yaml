@@ -18,3 +18,16 @@ spec:
       selfHeal: true # 自動修復，避免像是 replicas = 0 的狀況發生
     syncOptions:
       - CreateNamespace=true # 自動創建 namespace
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      name: backend
+      namespace: tire-ordering
+      jsonPointers:
+        - /spec/replicas
+    - group: apps
+      kind: Deployment
+      name: frontend
+      namespace: tire-ordering
+      jsonPointers:
+        - /spec/replicas
