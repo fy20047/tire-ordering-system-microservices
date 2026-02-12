@@ -117,7 +117,7 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
-            
+
   update-manifest:
     needs: [ backend, frontend ]
     runs-on: ubuntu-latest

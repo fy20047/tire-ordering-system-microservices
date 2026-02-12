@@ -7,7 +7,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: backend # 對應到 Backend Deployment
-  minReplicas: 3 # 下限：不管多閒，至少都要有 3 個 Pod 活著 (保證基本的可用性)
+  minReplicas: 2 # 下限：不管多閒，至少都要有 2 個 Pod 活著 (保證基本的可用性)
   maxReplicas: 6 # 上限：不管多忙，最多只開到 6 個 (防止爆炸或資料庫被打掛)
   metrics: # 伸縮的判斷標準
     - type: Resource
