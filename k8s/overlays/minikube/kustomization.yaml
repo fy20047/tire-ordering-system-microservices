@@ -16,9 +16,9 @@ resources:
 namespace: tire-ordering
 images:
 - name: ghcr.io/fy20047/tire-ordering-system/backend
-  newTag: 7edec83d0f5f29a09f8490e5af781b5f39e745e9
+  newTag: a5acc06e87763ea85dd982677a464b84517461b9
 - name: ghcr.io/fy20047/tire-ordering-system/frontend
-  newTag: 7edec83d0f5f29a09f8490e5af781b5f39e745e9
+  newTag: a5acc06e87763ea85dd982677a464b84517461b9
 patches:
 - path: frontend-nodeport.yaml
 - path: backend-scale.yaml
