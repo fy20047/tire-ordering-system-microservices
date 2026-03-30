@@ -1,0 +1,21 @@
+# 這份設定檔定義 Gateway 的基本執行參數。
+spring:
+  # 服務名稱：方便日後在監控、註冊中心、日誌中辨識。
+  application:
+    name: api-gateway
+
+# 服務監聽埠。Phase 1 先與既有 backend 維持 8080 介面習慣。
+server:
+  port: 8080
+
+# 目標後端位址：目前先指向舊 monolith backend。
+# 後續拆服務時，會改成更細的路由策略。
+gateway:
+  backend-base-url: ${BACKEND_BASE_URL:http://backend:8080}
+
+# 暴露健康檢查與基礎資訊端點，方便部署探針與除錯。
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

@@ -1,0 +1,106 @@
+# 修改紀錄
+
+> 目的：記錄依照 `README.md` 第 12 節執行清單所做的每一步變更，避免遺漏與方便回溯。
+
+## 2026-03-31 - Step 1：建立 API 契約文件（Phase 0）
+
+### 對應清單項目
+- `README.md` §12 項目 1：建 API 契約文件（以現況為準）
+
+### 本次修改檔案
+- `docs/api-contract-baseline.md`（新增）
+- `MODIFICATION_HISTORY.md`（新增，本檔）
+
+### 變更內容
+1. 新增 `docs/api-contract-baseline.md`，凍結目前單體後端 API 契約，內容包含：
+   - 共通規則（授權、cookie、時間格式、錯誤格式）
+   - Enum 契約（`InstallationOption`、`OrderStatus`）
+   - 全部現有 API 路徑、方法、請求/回應結構與主要狀態碼
+   - Phase 1 的契約凍結原則
+2. 新增本修改紀錄檔，作為後續每一步改動的歷史追蹤入口。
+
+### 契約來源程式碼（本次盤點依據）
+- `backend/src/main/java/com/fy20047/tireordering/backend/controller/*`
+- `backend/src/main/java/com/fy20047/tireordering/backend/dto/*`
+- `backend/src/main/java/com/fy20047/tireordering/backend/config/SecurityConfig.java`
+- `backend/src/main/java/com/fy20047/tireordering/backend/controller/GlobalExceptionHandler.java`
+- `backend/src/main/resources/application.yaml`
+
+### 驗證結果
+- 已確認文件覆蓋以下現有 API 群組：
+  - Admin Auth：`/api/admin/login`、`/api/admin/refresh`、`/api/admin/logout`
+  - Public Tires：`/api/tires`、`/api/tires/{id}`
+  - Public Orders：`/api/orders`
+  - Admin Tires：`/api/admin/tires`、`/api/admin/tires/{id}`、`/api/admin/tires/{id}/active`
+  - Admin Orders：`/api/admin/orders`、`/api/admin/orders/{id}/status`
+  - Health：`/health`、`/api/health`
+
+### 待辦
+- 等你確認 Step 1 內容後，再進入 Step 2（新增 Gateway 專案並先切入口，不改業務實作）。
+
+## 2026-03-31 - Step 2A：新增 Gateway 專案骨架（先不接入口）
+
+### 對應清單項目
+- `README.md` §12 項目 2：新增 Gateway 專案，先改入口，但不改業務實作
+
+### 本次修改檔案
+- `api-gateway/pom.xml`（新增）
+- `api-gateway/Dockerfile`（新增）
+- `api-gateway/src/main/java/com/fy20047/tireordering/apigateway/ApiGatewayApplication.java`（新增）
+- `api-gateway/src/main/java/com/fy20047/tireordering/apigateway/ApiProxyController.java`（新增）
+- `api-gateway/src/main/resources/application.yaml`（新增）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 新增 `api-gateway` Spring Boot 專案（Java 21、WebFlux、Actuator）。
+2. 新增 `ApiProxyController`，先提供 Phase 1 所需的基礎能力：
+   - 接收 `/api/**`
+   - 原樣轉發到 `BACKEND_BASE_URL`（預設 `http://backend:8080`）
+   - 保留回應狀態碼、回應 body 與必要 headers（含 `Set-Cookie`）
+3. 新增 `application.yaml` 設定 gateway 目標後端位址與基本管理端點。
+4. 新增 `Dockerfile`，可在容器中打包並執行 gateway。
+
+### 說明
+- 這一小步只完成「Gateway 專案本體」；尚未修改 `docker-compose`、`frontend/nginx.conf`、`k8s ingress`。
+- 下一小步會把入口實際切到 gateway（仍維持業務在舊 backend）。
+
+### 驗證結果
+- 已使用 Maven Wrapper 執行編譯檢查：
+  - `.\backend\mvnw.cmd -q -DskipTests -f .\api-gateway\pom.xml package`
+  - 結果：成功。
+
+## 2026-03-31 - Step 2A-1：Gateway 可維護性調整（改 MVC + 中文註解）
+
+### 對應需求
+- 針對「WebFlux 維護成本」疑慮，改為 Spring MVC 實作。
+- 根據官方說明，若主要還是用 JPA、JDBC 這類 blocking persistence API，對一般架構而言 Spring MVC 通常更合適。
+- 針對可讀性需求，為新增的 gateway 程式與 Dockerfile 補上中文註解（檔頭 + 段落）。
+
+### Spring MVC vs Spring WebFlux 以及使用讀判斷標準
+- MVC：每個請求進來，交給一個 thread 處理，遇到 DB/遠端呼叫可接受等待。
+- WebFlux：盡量不要讓 thread 卡住，讓少量 thread 可以處理更多 I/O 型工作。
+- 適合考慮 WebFlux :服務要同時呼叫很多下游 API、做 response aggregation、串流、SSE、WebSocket、或大量外部 I/O 等待。這類情況 non-blocking 模型比較能發揮效果。
+- 不一定要改 WebFlux：如果瓶頸其實是 SQL 太慢、資料庫鎖競爭、JPA 查詢設計不好、交易邏輯太重、CPU 計算太多，那改 WebFlux 通常不是第一優先。
+
+### 本次修改檔案
+- `api-gateway/pom.xml`（更新）
+- `api-gateway/src/main/java/com/fy20047/tireordering/apigateway/ApiGatewayApplication.java`（更新）
+- `api-gateway/src/main/java/com/fy20047/tireordering/apigateway/ApiProxyController.java`（重寫）
+- `api-gateway/src/main/resources/application.yaml`（更新）
+- `api-gateway/Dockerfile`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. `pom.xml` 由 `spring-boot-starter-webflux` 改為 `spring-boot-starter-web`。
+2. `ApiProxyController` 改為 Servlet/MVC 風格：
+   - 使用 Java `HttpClient` 轉發 `/api/**` 到舊 backend
+   - 保留原狀態碼、body 與必要 headers
+3. 在 `pom.xml`、`ApiGatewayApplication`、`ApiProxyController`、`application.yaml`、`Dockerfile` 補上中文說明註解，包含檔案用途與段落用途。
+
+### 說明
+- 此變更不改 API 契約、不改業務邏輯，只是把 Gateway 實作方式調整為團隊較熟悉、較直觀的 MVC 寫法。
+
+### 驗證結果
+- 已重新執行編譯檢查：
+  - `.\backend\mvnw.cmd -q -DskipTests -f .\api-gateway\pom.xml package`
+  - 結果：成功。
