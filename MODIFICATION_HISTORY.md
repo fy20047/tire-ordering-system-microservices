@@ -110,3 +110,30 @@
 - 已重新執行編譯檢查：
   - `.\backend\mvnw.cmd -q -DskipTests -f .\api-gateway\pom.xml package`
   - 結果：成功。
+
+## 2026-03-31 - Step 2B：本機入口切換到 Gateway（docker-compose + frontend）
+
+### 對應清單項目
+- `README.md` §12 項目 2：新增 Gateway 專案，先改入口，但不改業務實作
+
+### 本次修改檔案
+- `infra/docker-compose.yml`（更新）
+- `frontend/nginx.conf`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. `infra/docker-compose.yml`
+   - 新增 `api-gateway` 服務（build `../api-gateway`，對外 `8080:8080`）
+   - 設定 `BACKEND_BASE_URL=http://backend:8080`
+   - `frontend` 的 `depends_on` 從 `backend` 改為 `api-gateway`
+   - `backend` 移除對外 `8080` port，改成只在 compose 內部網路供 gateway 呼叫
+2. `frontend/nginx.conf`
+   - `/api/` 由 `proxy_pass http://backend:8080` 改為 `proxy_pass http://api-gateway:8080`
+
+### 說明
+- 這一步完成「入口切換」，但業務邏輯仍在舊 backend，符合 Phase 1 目標。
+- 目前本機流向：`Browser -> frontend(Nginx) -> api-gateway -> backend`。
+
+### 驗證結果
+- 已執行 `docker compose -f infra/docker-compose.yml config`，配置語法可解析。
+- 命令輸出中的 `.env` 變數警告屬於環境值未注入提示，不影響 compose 結構正確性。

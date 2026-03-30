@@ -1,4 +1,5 @@
 services:
+  # MariaDB：目前 monolith 與後續微服務共用資料來源（Phase 1 尚未拆庫）
   mariadb:
     image: mariadb:11
     container_name: tire_mariadb
@@ -26,6 +27,7 @@ services:
     depends_on:
       - mariadb
 
+  # 舊 monolith backend：Phase 1 仍保留業務實作，僅不再直接對外暴露 8080
   backend:
     build:
       context: ../backend
@@ -42,12 +44,25 @@ services:
       JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-3600}
       ADMIN_USERNAME: ${ADMIN_USERNAME}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
-    ports:
-      - "8080:8080"
     depends_on:
       mariadb:
         condition: service_healthy
 
+  # API Gateway：Phase 1 的唯一 API 入口，先把 /api 轉發回舊 backend
+  api-gateway:
+    build:
+      context: ../api-gateway
+      dockerfile: Dockerfile
+    image: tire-ordering-api-gateway:local
+    container_name: tire_api_gateway
+    environment:
+      BACKEND_BASE_URL: http://backend:8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+
+  # Frontend：只對外提供 UI，/api 請求改由 nginx 轉給 api-gateway
   frontend:
     build:
       context: ../frontend
@@ -59,7 +74,7 @@ services:
     ports:
       - "5173:80"
     depends_on:
-      - backend
+      - api-gateway
 
 volumes:
   mariadb_data:
