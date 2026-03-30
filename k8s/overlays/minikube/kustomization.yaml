@@ -15,6 +15,10 @@ resources:
 - limitrange.yaml
 namespace: tire-ordering
 images:
+- name: ghcr.io/fy20047/tire-ordering-system-microservices/backend
+  newTag: 03ab9c857faddd90f44b19261fdc17053dea4cf4
+- name: ghcr.io/fy20047/tire-ordering-system-microservices/frontend
+  newTag: 03ab9c857faddd90f44b19261fdc17053dea4cf4
 - name: ghcr.io/fy20047/tire-ordering-system/backend
   newTag: 3475216ddf09cf67a1e6f64a31a34ef5d6990a19
 - name: ghcr.io/fy20047/tire-ordering-system/frontend
