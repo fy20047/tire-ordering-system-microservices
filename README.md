@@ -4,6 +4,7 @@
 > 將原始專案轉為 microservices 架構。  
 > 釐清概念、資料設計、部署與 CI/CD 內容。
 > 與 Codex 合作進行 Vibe Coding。
+
 ---
 
 ## 0. 先講結論（你目前的架構決策）
@@ -543,14 +544,28 @@ Config 與 Secret 原則：
 
 ## 12. 下一步執行清單（我們就照這份走）
 
-第一輪先做 Phase 0 + Phase 1：
+### Phase 1 小總結（已完成）
 
-1. 建 API 契約文件（以現況為準）
-2. 新增 Gateway 專案，先改入口，但不改業務實作，之後再一條路徑一條路徑切到新服務
-3. 調整 Ingress 讓所有 `/api` 先走 Gateway
-4. 驗證前端流程不變（登入、查輪胎、建單、後台功能）
+1. 已建立 API 契約 baseline 文件（以 monolith 現況為準）
+2. 已新增 `api-gateway`，本機路徑改為 `frontend -> api-gateway -> backend`
+3. 已調整 K8s Ingress，讓 `/api` 先進 Gateway
+4. 已完成 smoke integration 驗證（登入、查輪胎、建單、後台核心流程）
+5. 已補 Gateway root 說明頁與 `/login` 導引，避免 `localhost:8080` Whitelabel
 
-完成後再進 Phase 2（抽 Auth + RS256）。
+### Phase 2 細項（抽 Auth + RS256）
+
+1. 建立 `auth-service` 專案骨架（Spring MVC），先搬移登入/刷新/登出與 refresh token 邏輯
+2. 導入 RS256：產生金鑰對、設定環境變數、簽章改用 private key、驗章改用 public key
+3. 調整 Gateway 路由：`/api/admin/login|refresh|logout` 導向 `auth-service`，其他 API 先維持 `backend`
+4. 調整 backend：停用重複 Auth 入口，保留 tire/order 業務 API，並套用 RS256 驗章設定
+5. 補 Phase 2 smoke：login/refresh/logout、admin API 帶 token、無效/過期 token、logout 後 refresh 失敗
+6. 更新部署與文件：`docker-compose`、`k8s`、`.env.example`、README、回滾步驟與驗證紀錄
+
+### Phase 2 完成判準
+
+1. 所有 Auth API 僅由 `auth-service` 對外提供
+2. 系統簽章/驗章全面改為 RS256，不再依賴 HS256 shared secret
+3. Phase 2 smoke 全部通過，前端行為與操作路徑維持不變
 
 ---
 
