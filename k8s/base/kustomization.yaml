@@ -5,5 +5,7 @@ resources:
   - mariadb-statefulset.yaml
   - backend-service.yaml
   - backend-deployment.yaml
+  - gateway-service.yaml
+  - gateway-deployment.yaml
   - frontend-service.yaml
   - frontend-deployment.yaml

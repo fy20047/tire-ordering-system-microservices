@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  # Gateway Service：提供 cluster 內可被 Ingress 指向的 API 入口
+  name: api-gateway
+  labels:
+    app: api-gateway
+spec:
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  selector:
+    app: api-gateway

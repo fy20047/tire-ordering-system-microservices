@@ -137,3 +137,35 @@
 ### 驗證結果
 - 已執行 `docker compose -f infra/docker-compose.yml config`，配置語法可解析。
 - 命令輸出中的 `.env` 變數警告屬於環境值未注入提示，不影響 compose 結構正確性。
+
+## 2026-03-31 - Step 3A：新增 K8s Gateway 基礎資源（先不改 Ingress）
+
+### 對應清單項目
+- `README.md` §12 項目 3：調整 Ingress 讓所有 `/api` 先走 Gateway（本步先完成前置資源）
+
+### 本次修改檔案
+- `k8s/base/gateway-deployment.yaml`（新增）
+- `k8s/base/gateway-service.yaml`（新增）
+- `k8s/base/kustomization.yaml`（更新）
+- `k8s/overlays/minikube/kustomization.yaml`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 新增 `k8s/base/gateway-deployment.yaml`
+   - 建立 `api-gateway` Deployment（replicas=1、containerPort=8080）
+   - 設定環境變數 `BACKEND_BASE_URL=http://backend:8080`（Phase 1 先回轉舊 backend）
+   - 加入 readiness/liveness probe
+2. 新增 `k8s/base/gateway-service.yaml`
+   - 建立 `api-gateway` ClusterIP Service（port 8080）
+3. 更新 `k8s/base/kustomization.yaml`
+   - 納入 `gateway-service.yaml` 與 `gateway-deployment.yaml`
+4. 更新 `k8s/overlays/minikube/kustomization.yaml`
+   - 新增 `ghcr.io/fy20047/tire-ordering-system/api-gateway` image tag 覆蓋
+
+### 說明
+- 此步驟只補齊 Gateway 在 K8s 的可部署資源，尚未切換 Ingress 路由。
+- 下一步（3B）才會把 `/api` Ingress 指向 `api-gateway`。
+
+### 驗證結果
+- 已執行 `kubectl kustomize k8s/base`，可成功輸出 manifest。
+- 已執行 `kubectl kustomize k8s/overlays/minikube`，可成功輸出 manifest。
