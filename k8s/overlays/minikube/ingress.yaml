@@ -8,6 +8,15 @@ spec:
     - host: kuang-i-tire
       http:
         paths:
+          # API 請求先進入 Gateway（Phase 1 統一入口）
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 8080
+          # 前端頁面與靜態資源維持走 frontend
           - path: /
             pathType: Prefix
             backend:

@@ -169,3 +169,28 @@
 ### 驗證結果
 - 已執行 `kubectl kustomize k8s/base`，可成功輸出 manifest。
 - 已執行 `kubectl kustomize k8s/overlays/minikube`，可成功輸出 manifest。
+
+## 2026-03-31 - Step 3B：調整 Ingress 路由（`/api` -> Gateway）
+
+### 對應清單項目
+- `README.md` §12 項目 3：調整 Ingress 讓所有 `/api` 先走 Gateway
+
+### 本次修改檔案
+- `k8s/overlays/minikube/ingress.yaml`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. `k8s/overlays/minikube/ingress.yaml`
+   - 新增 `/api` 路徑規則，導向 `api-gateway:8080`
+   - 保留 `/` 路徑規則，導向 `frontend:80`
+   - 加入中文註解說明路由意圖
+
+### 說明
+- 這一步完成了 K8s 層的入口切換：API 請求在 Ingress 層就先進 Gateway。
+- 目前符合 Phase 1 路徑：`External -> Ingress(/api) -> api-gateway -> backend`。
+
+### 驗證結果
+- 已執行 `kubectl kustomize k8s/overlays/minikube`，可成功輸出 manifest。
+- Ingress 輸出已確認同時包含：
+  - `/api` -> `api-gateway:8080`
+  - `/` -> `frontend:80`
