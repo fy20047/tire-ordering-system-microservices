@@ -12,6 +12,7 @@ server:
 # 後續拆服務時，會改成更細的路由策略。
 gateway:
   backend-base-url: ${BACKEND_BASE_URL:http://backend:8080}
+  frontend-login-url: ${FRONTEND_LOGIN_URL:http://localhost:5173/admin/login}
 
 # 暴露健康檢查與基礎資訊端點，方便部署探針與除錯。
 management:

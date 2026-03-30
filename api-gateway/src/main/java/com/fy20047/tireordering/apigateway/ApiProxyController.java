@@ -31,7 +31,9 @@ public class ApiProxyController {
             HttpHeaders.HOST.toLowerCase(Locale.ROOT),
             HttpHeaders.CONTENT_LENGTH.toLowerCase(Locale.ROOT),
             HttpHeaders.CONNECTION.toLowerCase(Locale.ROOT),
-            HttpHeaders.TRANSFER_ENCODING.toLowerCase(Locale.ROOT)
+            HttpHeaders.TRANSFER_ENCODING.toLowerCase(Locale.ROOT),
+            // Java HttpClient 對 Expect 屬於限制型 header，直接轉發會拋例外
+            HttpHeaders.EXPECT.toLowerCase(Locale.ROOT)
     );
 
     // 回應時同樣排除連線層 header，避免傳輸層衝突。

@@ -239,3 +239,55 @@
    - 所屬階段：Phase 1
    - 所屬步驟：Step 4
 2. 刪除 `scripts/smoke/_tmp_parse.ps1`（僅本地語法排查時產生的臨時檔）。
+
+## 2026-03-31 - Step 4B：實跑 Smoke 並修正 Gateway 轉發細節
+
+### 對應清單項目
+- `README.md` §12 項目 4：驗證前端流程不變（登入、查輪胎、建單、後台功能）
+
+### 本次修改檔案
+- `api-gateway/src/main/java/com/fy20047/tireordering/apigateway/ApiProxyController.java`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 修正 Gateway request header 排除清單
+   - 新增排除 `Expect` header（`HttpHeaders.EXPECT`）
+   - 原因：Java `HttpClient` 對 `Expect` 為限制型 header，直接轉發會拋出 `IllegalArgumentException`
+2. 使用 `infra/.env` 啟動本機 compose 後，實際執行 smoke 腳本：
+   - `powershell -ExecutionPolicy Bypass -File .\scripts\smoke\run-smoke-gateway.ps1 -BaseUrl "http://localhost:8080" -AdminUsername "<local>" -AdminPassword "<local>"`
+
+### 驗證結果
+- 10 個 smoke 案例全部通過：
+  - login / refresh / logout
+  - public tires / create order
+  - admin list / admin patch status
+  - refresh after logout 401
+  - admin without token 403
+  - refresh without cookie 401
+
+## 2026-03-31 - Step 4C：新增 Gateway 根路徑說明頁與登入導引
+
+### 本次修改目標
+- 解決 `http://localhost:8080` 顯示 Whitelabel Error Page 的可用性問題。
+- 提供清楚入口，讓使用者知道 API 應從哪裡測、登入頁應去哪裡開啟。
+
+### 實際變更檔案
+- `api-gateway/src/main/java/com/fy20047/tireordering/apigateway/GatewayInfoController.java`（新增）
+- `api-gateway/src/main/resources/application.yaml`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 新增 `GatewayInfoController`
+   - `GET /`：回傳簡單 HTML 說明頁，包含：
+     - `/api/health` 連結（API 健康檢查）
+     - `/login` 連結（登入頁轉址入口）
+     - `http://localhost:5173/` 前端首頁提示
+   - `GET /login`：302 轉址到前端登入頁。
+2. 新增可配置屬性
+   - `gateway.frontend-login-url`，預設 `http://localhost:5173/admin/login`。
+   - 可透過環境變數 `FRONTEND_LOGIN_URL` 覆蓋，方便本機與部署環境切換。
+
+### 設計理由
+- Gateway 在 Phase 1 仍是 API 導向服務，保留這個定位不改。
+- 同時補上一個最小導引頁，避免 root path 對使用者不友善。
+- 透過 `/login` 做「導引轉址」而不是在 Gateway 直接承接前端頁面，責任邊界清楚。
