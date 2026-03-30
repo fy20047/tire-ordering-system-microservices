@@ -82,6 +82,12 @@
 - 適合考慮 WebFlux :服務要同時呼叫很多下游 API、做 response aggregation、串流、SSE、WebSocket、或大量外部 I/O 等待。這類情況 non-blocking 模型比較能發揮效果。
 - 不一定要改 WebFlux：如果瓶頸其實是 SQL 太慢、資料庫鎖競爭、JPA 查詢設計不好、交易邏輯太重、CPU 計算太多，那改 WebFlux 通常不是第一優先。
 
+### 實作方向
+- 在 monolith 拆分為 microservices 的第一階段，選擇先採用 Spring MVC，而非 WebFlux。
+- 原因是目前核心流程以 CRUD 與資料庫交易為主，資料層仍使用 JPA/MariaDB（阻塞式 I/O），若僅在 API 層改為 WebFlux，無法形成端到端非阻塞，效益有限。
+- 拆分初期的主要目標是服務邊界穩定、入口一致、低風險遷移與可維運性，因此優先採用除錯與監控成本較低的 MVC。
+- 後續若監控數據顯示 Gateway 出現高併發 I/O 瓶頸（例如高fan-out、長連線、thread pool 飽和），再針對特定服務評估導入 WebFlux 或 Reactive stack。
+
 ### 本次修改檔案
 - `api-gateway/pom.xml`（更新）
 - `api-gateway/src/main/java/com/fy20047/tireordering/apigateway/ApiGatewayApplication.java`（更新）
