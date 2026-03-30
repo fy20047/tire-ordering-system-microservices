@@ -311,3 +311,70 @@
 ### 設計理由
 - 執行清單要同時承擔「回顧」與「下一步」兩個用途，才能降低切換階段時的溝通成本。
 - 先定義完成判準，有助於後續每一步驗證時對齊目標，不會只停留在「有改到程式」。
+
+## 2026-03-31 - Step 5A-1：建立 auth-service 專案骨架
+
+### 對應清單項目
+- `README.md` §12 Phase 2 細項 1：建立 `auth-service` 專案骨架（Spring MVC）
+
+### 本次修改檔案
+- `auth-service/pom.xml`（新增）
+- `auth-service/Dockerfile`（新增）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/AuthServiceApplication.java`（新增）
+- `auth-service/src/main/resources/application.yaml`（新增）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 新增 `auth-service` Maven 專案
+   - 建立 `pom.xml`，納入 Auth 拆分所需的基礎依賴：
+     - Spring MVC / Security / Validation
+     - JPA + MariaDB
+     - JWT（jjwt）
+     - Actuator（health/info）
+2. 新增 `AuthServiceApplication` 啟動入口
+   - 讓 `auth-service` 可以獨立啟動，作為後續 Auth API 搬移目標。
+3. 新增 `auth-service` 專屬 `application.yaml`
+   - 建立 `spring.application.name=auth-service`
+   - 先沿用現有 `security.jwt.*` 欄位（下一步再切 RS256）
+   - 暴露 `management` 的 `health,info` 端點
+4. 新增 `auth-service` Dockerfile
+   - 兩階段建置（build/runtime），可直接產出獨立容器映像。
+
+### 設計理由
+- 先建立可獨立建置與啟動的 service 邊界，再搬移 Auth 邏輯，能降低一次性大改風險。
+- 這一步不改 gateway/backend 既有行為，便於逐步驗證與回滾。
+
+### 驗證結果
+- 本步僅完成骨架建立，尚未接入 `login/refresh/logout` API，下一步會搬移 Auth 流程。
+
+## 2026-03-31 - Step 5A-1A：補齊新增檔案中文註解與交付格式
+
+### 對應需求
+- 依使用者要求，新增程式碼需包含：
+  - 檔案最上方用途說明
+  - 每個段落開頭的中文註解
+  - Dockerfile 同樣需可讀且解釋「為何這樣做」
+- 每次改動回報需補上：
+  - 變更內容
+  - 小總結
+  - commit 指令（使用 `(英文分類標籤)中文描述` 格式）
+
+### 本次修改檔案
+- `auth-service/pom.xml`（更新）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/AuthServiceApplication.java`（更新）
+- `auth-service/src/main/resources/application.yaml`（更新）
+- `auth-service/Dockerfile`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. `auth-service/pom.xml`
+   - 補上各段落中文註解：專案識別、Java 版本、依賴分類、打包插件用途。
+2. `AuthServiceApplication.java`
+   - 補上檔案用途說明與 `main` 段落用途說明。
+3. `application.yaml`
+   - 補上檔案用途與各區塊註解：`spring.application`、`datasource`、`jpa`、`security.jwt`、`management`。
+4. `Dockerfile`
+   - 補上 build/runtime 每段用途與每個關鍵指令的原因說明（快取、減少映像體積、保留 JVM 參數注入）。
+
+### 小總結
+- 本次不改功能，只補可讀性與可維護性註解，讓後續每一步變更更容易審核與交接。
