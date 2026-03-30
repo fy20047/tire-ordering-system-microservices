@@ -194,3 +194,48 @@
 - Ingress 輸出已確認同時包含：
   - `/api` -> `api-gateway:8080`
   - `/` -> `frontend:80`
+
+## 2026-03-31 - Step 4：建立 Smoke Integration 測試腳本與挑選說明
+
+### 對應清單項目
+- `README.md` §12 項目 4：驗證前端流程不變（登入、查輪胎、建單、後台功能）
+
+### 本次修改檔案
+- `scripts/smoke/run-smoke-gateway.ps1`（新增）
+- `docs/smoke-integration-selection.md`（新增）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 新增 `scripts/smoke/run-smoke-gateway.ps1`
+   - 提供可重複執行的 smoke integration 測試（10 個案例）
+   - 覆蓋 login/refresh/logout、公開 API、後台授權 API、失敗路徑（401/403）
+   - 內含中文註解：檔案用途與各段落用途
+2. 新增 `docs/smoke-integration-selection.md`
+   - 說明為何選這 10 個案例（風險覆蓋法）
+   - 說明 smoke 與全量回歸的差異
+   - 提供執行方式與通過判定標準
+
+### 說明
+- 本步驟目標是「先驗證入口改造後核心流程未回歸」，不是全 API 覆蓋。
+- 全量 API 測試建議放在後續 SIT/回歸流程，避免 smoke 失去快速回饋特性。
+
+### 驗證結果
+- 已使用 PowerShell Parser 檢查 `scripts/smoke/run-smoke-gateway.ps1` 語法可解析。
+- 實際 API 執行驗證需在服務啟動且測試帳密可用時執行。
+
+## 2026-03-31 - Step 4A：補充說明與清理臨時檔
+
+### 對應需求
+- 補強文件：明確標註 smoke 文件屬於 Phase 1 Step 4。
+- 清理過程產生的臨時檔。
+
+### 本次修改檔案
+- `docs/smoke-integration-selection.md`（更新）
+- `scripts/smoke/_tmp_parse.ps1`（刪除）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 在 `docs/smoke-integration-selection.md` 新增「適用範圍」段落，明確標示：
+   - 所屬階段：Phase 1
+   - 所屬步驟：Step 4
+2. 刪除 `scripts/smoke/_tmp_parse.ps1`（僅本地語法排查時產生的臨時檔）。
