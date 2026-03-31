@@ -66,8 +66,8 @@ kubectl -n tire-ordering create secret generic db-secret --from-literal=MARIADB_
 - `replace_with_private_key` / `replace_with_public_key` 與 `changeme` 都要替換成真實值
 ```powershell
 kubectl -n tire-ordering create secret generic app-secret `
-  --from-literal=JWT_PRIVATE_KEY='__REMOVED_PRIVATE_KEY__' `
-  --from-literal=JWT_PUBLIC_KEY='__REMOVED_PUBLIC_KEY__' `
+  --from-literal=JWT_PRIVATE_KEY='<your_rs256_private_key_pem>' `
+  --from-literal=JWT_PUBLIC_KEY='<your_rs256_public_key_pem>' `
   --from-literal=ADMIN_USERNAME=admin `
   --from-literal=ADMIN_PASSWORD=changeme `
   --from-literal=BACKEND_AUTH_ENDPOINTS_ENABLED=false

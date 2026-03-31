@@ -731,3 +731,99 @@
 
 ### 小總結
 - K8s 佈署拓樸已對齊 Phase 2：Gateway 可分流到 `auth-service`，且 minikube overlay 已補齊 auth-service 與 backend 的必要參數注入結構。
+
+## 2026-03-31 - Step 5D-1C：重封 `app-sealedsecret`（JWT_SECRET -> RS256 key pair）
+
+### 對應清單項目
+- `README.md` §12 Phase 2 細項 6：更新部署與文件（K8s secret/SealedSecret 同步）。
+
+### 本次修改檔案
+- `k8s/overlays/minikube/app-sealedsecret.yaml`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 啟動 minikube 並確認 sealed-secrets controller 可用。
+2. 安裝 `kubeseal`（本機工具，`tools/kubeseal/kubeseal.exe`，不入版控）。
+3. 以本機 `infra/.env` 值重建 `app-secret` 明文（dry-run）：
+   - `ADMIN_USERNAME`
+   - `ADMIN_PASSWORD`
+   - `JWT_PRIVATE_KEY`
+   - `JWT_PUBLIC_KEY`
+   - `BACKEND_AUTH_ENDPOINTS_ENABLED`
+4. 使用 `kubeseal` 重新封裝，覆蓋 `k8s/overlays/minikube/app-sealedsecret.yaml`。
+5. 套用後驗證 `app-secret`（叢集內）已不含 `JWT_SECRET`，改為 RS256 欄位。
+
+### 分段原因說明
+- SealedSecret 密文與叢集 controller 金鑰綁定，不能只靠文字替換 `JWT_SECRET` 為 `JWT_PRIVATE_KEY`。
+- 必須用「目標叢集」重新 seal 一次，才能確保 controller 能成功 unseal。
+- 因此 Step 5D-1C 獨立成一小步，專注處理密鑰封裝與驗證，避免與 Deployment/Route 變更混在同一步。
+
+### 驗證結果
+- 已執行：
+  - `kubectl apply -f k8s/overlays/minikube/app-sealedsecret.yaml`
+  - `kubectl -n tire-ordering get secret app-secret -o json`（檢查 data keys）
+- 驗證結果：`app-secret` keys 為
+  - `ADMIN_USERNAME`
+  - `ADMIN_PASSWORD`
+  - `JWT_PRIVATE_KEY`
+  - `JWT_PUBLIC_KEY`
+  - `BACKEND_AUTH_ENDPOINTS_ENABLED`
+- 已確認不再包含 `JWT_SECRET`。
+
+### 小總結
+- K8s secret 體系已完成 RS256 轉換，後續 overlay 套用時可由 SealedSecret 直接還原正確的 JWT key pair。
+
+## 2026-03-31 - Security Hotfix S1：Private Key 外洩緊急處置（一步到位）
+
+### 事件背景
+- 收到 GitGuardian 告警：`Generic Private Key exposed on GitHub`（2026-03-31 07:12:11 UTC）。
+- 影響範圍包含測試檔案中的固定 RSA private key；且本機/叢集當時沿用同組 key，必須立即輪替。
+
+### 本次修改檔案
+- `auth-service/src/test/java/com/fy20047/tireordering/authservice/support/TestRsaKeyPairFactory.java`（新增）
+- `backend/src/test/java/com/fy20047/tireordering/backend/support/TestRsaKeyPairFactory.java`（新增）
+- `auth-service/src/test/java/com/fy20047/tireordering/authservice/security/JwtServiceTest.java`（更新）
+- `backend/src/test/java/com/fy20047/tireordering/backend/security/JwtServiceTest.java`（更新）
+- `auth-service/src/test/java/com/fy20047/tireordering/authservice/AuthServiceApplicationTests.java`（更新）
+- `backend/src/test/java/com/fy20047/tireordering/backend/BackendApplicationTests.java`（更新）
+- `auth-service/src/test/resources/application-test.yaml`（更新）
+- `backend/src/test/resources/application-test.yaml`（更新）
+- `infra/.env`（本機檔，更新，不入版控）
+- `k8s/overlays/minikube/app-sealedsecret.yaml`（更新）
+- `infra/.env.example`（更新）
+- `SETUP_GUIDE.md`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 移除 repository 中固定私鑰
+   - 新增兩個測試工具 `TestRsaKeyPairFactory`（auth-service/backend 各一份），改為測試執行時動態產生 RSA key pair。
+   - `JwtServiceTest` 不再保存硬編碼 PEM 私鑰，改用動態產生 key。
+2. 調整 Spring Context 測試注入方式
+   - `AuthServiceApplicationTests`、`BackendApplicationTests` 新增 `@DynamicPropertySource`，在 context 啟動前注入動態 JWT key。
+   - `application-test.yaml` 改為測試注入占位，避免保存任何固定 private key。
+3. 立即輪替執行環境金鑰
+   - 產生全新 RSA key pair，更新本機 `infra/.env` 的 `JWT_PRIVATE_KEY/JWT_PUBLIC_KEY`（local only）。
+   - 依新 `.env` 值重新封裝 `app-sealedsecret.yaml` 並套用至 minikube。
+4. 降低後續誤報與誤用風險
+   - `infra/.env.example`、`SETUP_GUIDE.md` 改為通用占位字串，不再放 `BEGIN ... KEY` 形式範例。
+
+### 驗證結果
+- 關鍵字掃描：
+  - `git grep "PRIVATE KEY PEM marker"` → 無結果
+  - `git grep "PUBLIC KEY PEM marker"` → 無結果
+- 測試驗證：
+  - `.\backend\mvnw.cmd -q -f .\auth-service\pom.xml test` 通過
+  - `.\backend\mvnw.cmd -q -f .\backend\pom.xml test` 通過
+- SealedSecret 驗證：
+  - `kubectl apply -f k8s/overlays/minikube/app-sealedsecret.yaml` 成功
+  - `app-secret` keys 已為 `JWT_PRIVATE_KEY/JWT_PUBLIC_KEY`（不含 `JWT_SECRET`）
+
+### 分段原因說明
+- 這次屬於資安事件，需同時完成三件事才算止血：
+  - 移除 repo HEAD 明文私鑰
+  - 輪替實際使用中的 JWT key
+  - 驗證服務測試與 secret 封裝流程仍可運作
+- 若只刪測試檔內容但不輪替 key，已外洩金鑰仍可被利用；若只輪替 key 但不改測試，後續仍會再次外洩。
+
+### 小總結
+- 已完成「移除明文私鑰 + 輪替 JWT key + 重封 SealedSecret + 測試驗證」的一次性熱修；目前 HEAD 不再含 private key 明文。

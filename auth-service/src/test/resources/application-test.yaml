@@ -1,5 +1,5 @@
 # 這份測試設定檔用途：
-# 提供 auth-service 測試執行時的隔離環境（H2 + 測試用 JWT 設定），避免依賴外部 MariaDB。
+# 提供 auth-service 測試執行時的隔離環境（H2 + JWT 參數），避免依賴外部 MariaDB。
 spring:
   # 這段設定用途：使用記憶體 H2 取代正式資料庫，提升測試穩定與速度。
   datasource:
@@ -13,13 +13,12 @@ spring:
     hibernate:
       ddl-auto: create-drop
 
-# 這段設定用途：提供 RS256 測試金鑰與 JWT 參數，確保安全相關 Bean 可正常初始化。
+# 這段設定用途：
+# JWT key 由測試程式在啟動前動態注入，不在 repository 保存固定 private key。
 security:
   jwt:
-    private-key: |-
-      __REMOVED_PRIVATE_KEY__
-    public-key: |-
-      __REMOVED_PUBLIC_KEY__
+    private-key: ${TEST_JWT_PRIVATE_KEY:__injected_by_test__}
+    public-key: ${TEST_JWT_PUBLIC_KEY:__injected_by_test__}
     expiration-seconds: 3600
     refresh-expiration-seconds: 1209600
     refresh-cookie-name: refreshToken

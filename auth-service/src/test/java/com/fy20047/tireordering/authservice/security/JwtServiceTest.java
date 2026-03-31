@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fy20047.tireordering.authservice.config.JwtProperties;
 import com.fy20047.tireordering.authservice.entity.Admin;
+import com.fy20047.tireordering.authservice.support.TestRsaKeyPairFactory;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import org.junit.jupiter.api.Test;
@@ -13,22 +14,17 @@ import org.junit.jupiter.api.Test;
 // 驗證 JwtService 的核心行為：能簽發可解析 token，且能拒絕非法 token。
 class JwtServiceTest {
 
-    // 這段常數用途：提供 RS256 測試金鑰（與 application-test.yaml 同組），驗證簽章/驗章流程。
-    private static final String TEST_PRIVATE_KEY = """
-            __REMOVED_PRIVATE_KEY__
-            """;
-
-    private static final String TEST_PUBLIC_KEY = """
-            __REMOVED_PUBLIC_KEY__
-            """;
+    // 這段常數用途：
+    // 測試執行時動態產生 RSA 金鑰，避免任何固定私鑰寫入版本庫。
+    private static final TestRsaKeyPairFactory.PemKeyPair TEST_KEY_PAIR = TestRsaKeyPairFactory.generate();
 
     // 這個測試案例用途：
     // 確認 generateToken 後可由 parseToken 讀回 subject 與 role。
     @Test
     void generateToken_shouldIncludeSubjectAndRole() {
         JwtProperties properties = new JwtProperties(
-                TEST_PRIVATE_KEY,
-                TEST_PUBLIC_KEY,
+                TEST_KEY_PAIR.privateKeyPem(),
+                TEST_KEY_PAIR.publicKeyPem(),
                 3600,
                 1209600,
                 "refreshToken",
@@ -54,8 +50,8 @@ class JwtServiceTest {
     @Test
     void parseToken_whenInvalid_shouldThrow() {
         JwtProperties properties = new JwtProperties(
-                TEST_PRIVATE_KEY,
-                TEST_PUBLIC_KEY,
+                TEST_KEY_PAIR.privateKeyPem(),
+                TEST_KEY_PAIR.publicKeyPem(),
                 3600,
                 1209600,
                 "refreshToken",

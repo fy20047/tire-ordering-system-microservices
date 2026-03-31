@@ -1,4 +1,7 @@
+# 這份測試設定檔用途：
+# 提供 backend 測試執行時的隔離環境（H2 + JWT 參數），避免依賴外部 MariaDB。
 spring:
+  # 這段設定用途：使用記憶體 H2，測試不依賴真實資料庫。
   datasource:
     url: "jdbc:h2:mem:tire_shop_test;MODE=MariaDB;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
     driver-class-name: org.h2.Driver
@@ -8,12 +11,12 @@ spring:
     hibernate:
       ddl-auto: create-drop
 
+# 這段設定用途：
+# JWT key 由測試程式在 context 啟動前動態注入，避免固定 private key 出現在版本庫。
 security:
   jwt:
-    private-key: |-
-      __REMOVED_PRIVATE_KEY__
-    public-key: |-
-      __REMOVED_PUBLIC_KEY__
+    private-key: ${TEST_JWT_PRIVATE_KEY:__injected_by_test__}
+    public-key: ${TEST_JWT_PUBLIC_KEY:__injected_by_test__}
     expiration-seconds: 3600
     refresh-expiration-seconds: 1209600
     refresh-cookie-name: refreshToken

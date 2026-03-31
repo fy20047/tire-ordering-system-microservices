@@ -5,27 +5,22 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fy20047.tireordering.backend.config.JwtProperties;
 import com.fy20047.tireordering.backend.entity.Admin;
+import com.fy20047.tireordering.backend.support.TestRsaKeyPairFactory;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import org.junit.jupiter.api.Test;
 
 class JwtServiceTest {
 
-    // 測試用 RS256 金鑰（與 application-test.yaml 同組）
-    private static final String TEST_PRIVATE_KEY = """
-            __REMOVED_PRIVATE_KEY__
-            """;
-
-    private static final String TEST_PUBLIC_KEY = """
-            __REMOVED_PUBLIC_KEY__
-            """;
+    // 測試用 RSA 金鑰由執行時動態產生，避免固定私鑰出現在版本庫中。
+    private static final TestRsaKeyPairFactory.PemKeyPair TEST_KEY_PAIR = TestRsaKeyPairFactory.generate();
 
     @Test
     // 自己生的 token，自己要讀得出來
     void generateToken_shouldIncludeSubjectAndRole() {
         JwtProperties properties = new JwtProperties(
-                TEST_PRIVATE_KEY,
-                TEST_PUBLIC_KEY,
+                TEST_KEY_PAIR.privateKeyPem(),
+                TEST_KEY_PAIR.publicKeyPem(),
                 3600,
                 0,
                 "refresh",
@@ -52,8 +47,8 @@ class JwtServiceTest {
     // 收到垃圾或是假的，要報錯
     void parseToken_whenInvalid_shouldThrow() {
         JwtProperties properties = new JwtProperties(
-                TEST_PRIVATE_KEY,
-                TEST_PUBLIC_KEY,
+                TEST_KEY_PAIR.privateKeyPem(),
+                TEST_KEY_PAIR.publicKeyPem(),
                 3600,
                 0,
                 "refresh",
