@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 // 這個 Controller 是 Phase 1 的 API 入口代理：
 // 1) 接收所有 /api/** 請求
-// 2) 依路徑轉發到對應服務（Auth API -> auth-service，其餘 -> backend）
+// 2) 依路徑轉發到對應服務（Auth -> auth-service、Tire -> tire-service、Order -> order-service）
 // 3) 盡量維持原本狀態碼/headers/body，讓前端無感
 @RestController
 @RequestMapping("/api")
@@ -52,16 +52,20 @@ public class ApiProxyController {
     private final String authBaseUrl;
     // tire-service 的 base URL（輪胎查詢與後台輪胎管理走這條）。
     private final String tireBaseUrl;
+    // order-service 的 base URL（建單與後台訂單管理走這條）。
+    private final String orderBaseUrl;
 
     // 建構子注入設定值並初始化 HttpClient。
     public ApiProxyController(
             @Value("${gateway.backend-base-url:http://backend:8080}") String backendBaseUrl,
             @Value("${gateway.auth-base-url:http://auth-service:8080}") String authBaseUrl,
-            @Value("${gateway.tire-base-url:http://tire-service:8080}") String tireBaseUrl
+            @Value("${gateway.tire-base-url:http://tire-service:8080}") String tireBaseUrl,
+            @Value("${gateway.order-base-url:http://order-service:8080}") String orderBaseUrl
     ) {
         this.backendBaseUrl = normalizeBaseUrl(backendBaseUrl);
         this.authBaseUrl = normalizeBaseUrl(authBaseUrl);
         this.tireBaseUrl = normalizeBaseUrl(tireBaseUrl);
+        this.orderBaseUrl = normalizeBaseUrl(orderBaseUrl);
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
@@ -130,6 +134,7 @@ public class ApiProxyController {
     // 依 API 路徑決定要轉發到哪個服務：
     // - /api/admin/login|refresh|logout -> auth-service
     // - /api/tires/** 與 /api/admin/tires/** -> tire-service
+    // - /api/orders/** 與 /api/admin/orders/** -> order-service
     // - 其餘 -> backend
     private String resolveTargetBaseUrl(String requestUri) {
         if (isAuthEntryPath(requestUri)) {
@@ -137,6 +142,9 @@ public class ApiProxyController {
         }
         if (isTirePath(requestUri)) {
             return tireBaseUrl;
+        }
+        if (isOrderPath(requestUri)) {
+            return orderBaseUrl;
         }
         return backendBaseUrl;
     }
@@ -154,6 +162,13 @@ public class ApiProxyController {
         String normalizedPath = normalizePath(requestUri);
         return matchesPathPrefix(normalizedPath, "/api/tires")
                 || matchesPathPrefix(normalizedPath, "/api/admin/tires");
+    }
+
+    // 僅匹配 Order API 入口，避免把其他業務 API 誤導到 order-service。
+    private boolean isOrderPath(String requestUri) {
+        String normalizedPath = normalizePath(requestUri);
+        return matchesPathPrefix(normalizedPath, "/api/orders")
+                || matchesPathPrefix(normalizedPath, "/api/admin/orders");
     }
 
     // 路徑比對工具：只接受完整段落匹配（prefix 本身或 prefix + "/"）。

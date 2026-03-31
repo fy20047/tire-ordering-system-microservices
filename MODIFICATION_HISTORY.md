@@ -1557,3 +1557,39 @@
 
 ### 小總結
 - 建單流程已改為透過 `tire-service` 驗證可下單並寫入 snapshot，`order-service` 不再直接依賴輪胎資料表。
+
+## 2026-04-01 - Step 7F：Gateway 分流訂單路徑到 order-service
+
+### 對應清單項目
+- `README.md` §12 Phase 4 細項 6：調整 Gateway 分流：`/api/orders/**` 與 `/api/admin/orders/**` 導向 `order-service`。
+
+### 本次修改檔案
+- `api-gateway/src/main/java/com/fy20047/tireordering/apigateway/ApiProxyController.java`（更新）
+- `api-gateway/src/main/resources/application.yaml`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 新增 Gateway 目標服務設定
+   - `application.yaml` 新增 `gateway.order-base-url`（環境變數 `ORDER_BASE_URL`，預設 `http://order-service:8080`）。
+2. 調整 `ApiProxyController` 分流規則
+   - 新增 `orderBaseUrl` 注入與欄位。
+   - 新增 `isOrderPath(...)` 路徑判斷：
+     - `/api/orders`
+     - `/api/orders/**`
+     - `/api/admin/orders`
+     - `/api/admin/orders/**`
+   - `resolveTargetBaseUrl(...)` 新增 order 分流判斷，讓訂單 API 導向 `order-service`。
+3. 註解同步更新
+   - Controller 檔頭與路由判斷註解補上 Order 分流用途說明。
+
+### 分段原因說明
+- 本步只處理 Gateway 程式分流，不混入 compose/k8s/backend 邊界調整，保持改動面可控。
+- 先讓 Gateway 具備正確路由能力，下一步再收斂 backend 重複 Order 入口與部署設定。
+
+### 驗證結果
+- 已執行編譯打包檢查：
+  - `.\mvnw.cmd -q -DskipTests -f ..\api-gateway\pom.xml package`（於 `backend` 目錄執行）
+- 結果：成功。
+
+### 小總結
+- Gateway 已具備將訂單路徑分流到 `order-service` 的能力；下一步可進行 backend Order 入口收斂與部署同步。
