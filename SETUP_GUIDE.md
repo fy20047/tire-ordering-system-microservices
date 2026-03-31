@@ -7,6 +7,18 @@
 1) 複製一份 `infra/.env.example` 並重新命名為 `infra/.env`
 2) 開啟 `.env` 填入必要的變數值（例如：資料庫密碼、管理員帳號密碼、`JWT_PRIVATE_KEY`、`JWT_PUBLIC_KEY`）
 
+## 目前服務拓樸（Phase 3 結案）
+- 前端流量：`frontend -> api-gateway`
+- Auth 路徑：`/api/admin/login|refresh|logout -> auth-service`
+- Tire 路徑：`/api/tires/**`、`/api/admin/tires/** -> tire-service`
+- 其餘既有業務路徑（目前主要是 Order）：仍由 `backend` 承接（等待 Phase 4 抽離）
+
+## 重要環境變數（Phase 3）
+- `BACKEND_AUTH_ENDPOINTS_ENABLED=false`
+- `BACKEND_TIRE_ENDPOINTS_ENABLED=false`
+- `JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY`
+- `JWT_EXPIRATION_SECONDS`
+
 ## 啟動 (本地開發 / Local build)
 使用本地的 `Dockerfile` 重新建置映像檔：
 ```powershell
@@ -47,6 +59,15 @@ docker compose -f infra/docker-compose.prod.yml down
 ```powershell
 docker login ghcr.io
 ```
+
+## Phase 3 Smoke 驗證（Gateway 分流後）
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke\run-smoke-gateway.ps1 `
+  -BaseUrl "http://localhost:8080" `
+  -AdminUsername "<your_admin_username>" `
+  -AdminPassword "<your_admin_password>"
+```
+驗證重點：公開輪胎查詢、後台輪胎 CRUD/上下架、授權失敗路徑、登入刷新登出、訂單核心流程。
 
 ## Kubernetes Secrets (Minikube 環境)
 在部署 `k8s/overlays/minikube` 之前必須先建立好 Secret
@@ -145,7 +166,7 @@ minikube start --driver=docker
 kubectl config use-context minikube
 ```
 ### 2. 部署應用程式
-使用 Kustomize 部署會用到的 K8s 資源 (DB, Backend, API Gateway, Frontend)，第一次部署前，要先確定有手動建立 Secret (上方的 db-secret, app-secret)
+使用 Kustomize 部署會用到的 K8s 資源 (DB, Backend, Auth Service, Tire Service, API Gateway, Frontend)，第一次部署前，要先確定有手動建立 Secret (上方的 db-secret, app-secret)
 ```powershell
 # Apply manifests
 kubectl apply -k k8s/overlays/minikube
@@ -174,6 +195,8 @@ kubectl apply -k k8s/overlays/minikube
 ```powershell
 kubectl -n tire-ordering rollout restart deployment frontend
 kubectl -n tire-ordering rollout restart deployment backend
+kubectl -n tire-ordering rollout restart deployment auth-service
+kubectl -n tire-ordering rollout restart deployment tire-service
 kubectl -n tire-ordering rollout restart deployment api-gateway
 ```
 

@@ -593,6 +593,32 @@ Config 與 Secret 原則：
 2. 查輪胎與後台輪胎管理流程不再依賴 `backend` 的 Tire Controller
 3. Phase 3 smoke 全部通過，前端操作路徑維持不變
 
+### Phase 3 技術總結（已完成）
+
+- 服務切分：`tire-service` 已承接 `/api/tires/**` 與 `/api/admin/tires/**`，Gateway 完成路由分流且保留 Auth 優先匹配。
+- 安全機制：`tire-service` 以 RS256 public key 進行 JWT 驗章，公開查詢路徑放行、後台輪胎管理要求 `ROLE_ADMIN`。
+- 邊界收斂：`backend` 的重複 Tire 入口改為 feature flag 控制（預設關閉），保留 order 相依資料模型供 Phase 4 過渡。
+- 部署同步：`docker-compose`、`k8s base/overlay`、`.env.example` 已加入 `tire-service` 與 `TIRE_BASE_URL`、`BACKEND_TIRE_ENDPOINTS_ENABLED`。
+- 驗證補強：Phase 3 smoke 已覆蓋公開輪胎查詢、後台輪胎 CRUD/上下架、授權失敗路徑與既有訂單主流程。
+
+### Phase 4 細項（抽 Order Service + Snapshot）
+
+1. 建立 `order-service` 專案骨架（Spring MVC + JPA + Security 驗章），先確保可獨立 build/run
+2. 搬移 Order 領域核心：`Order`、`OrderRepository`、`OrderService` 與必要 DTO/例外處理
+3. 搬移訂單 API：`/api/orders`、`/api/admin/orders`、`/api/admin/orders/{id}/status`
+4. 實作 Snapshot 模型：訂單改存 `tireId + tireSnapshot`，移除對 Tire Entity 直接關聯
+5. 建單流程改造：建單時呼叫 `tire-service` 驗證商品可下單，並寫入 snapshot
+6. 調整 Gateway 分流：`/api/orders/**` 與 `/api/admin/orders/**` 導向 `order-service`
+7. 調整 backend 邊界：停用重複 Order API 入口，保留最小相依作為過渡
+8. 更新部署與文件：`docker-compose`、`k8s`、`.env.example`、`SETUP_GUIDE`、README 驗證紀錄
+9. 補 Phase 4 smoke：建單成功/失敗、後台查改單、snapshot 不受後續輪胎修改影響
+
+### Phase 4 完成判準
+
+1. `Order` 相關 API 僅由 `order-service` 對外提供（經由 Gateway）
+2. `order-service` 不再直接依賴 Tire 資料表關聯，改以 `tireId + snapshot` 運作
+3. Phase 4 smoke 全部通過，前端操作路徑維持不變
+
 ---
 
 ## 13. 目標目錄結構（最終樣貌）

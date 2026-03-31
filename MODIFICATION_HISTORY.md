@@ -1249,3 +1249,42 @@
 
 ### 小總結
 - Phase 3 的「程式分流 + 部署配置 + 端到端 smoke」已完成一輪閉環驗證，Gateway 轉發到 `tire-service` 的公開與後台輪胎路徑可正常運作。
+
+## 2026-04-01 - Step 6I：Phase 3 結案文件收尾 + Phase 4 規劃
+
+### 對應需求
+- 使用者要求：
+  1. 說明 `auth` 與 `tire` 拆分差異，以及 `order` 拆分與 JWT 角色關係。
+  2. 補齊 Phase 3 結案文件。
+  3. 規劃 Phase 4 執行內容。
+
+### 本次修改檔案
+- `README.md`（更新）
+- `SETUP_GUIDE.md`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. `README.md` 第 12 節補齊 Phase 3 結案內容
+   - 新增「Phase 3 技術總結（已完成）」：
+     - 服務切分、JWT 驗章角色、backend 邊界收斂、部署同步、smoke 驗證覆蓋
+2. `README.md` 第 12 節新增 Phase 4 規劃
+   - 新增「Phase 4 細項（抽 Order Service + Snapshot）」9 個執行步驟
+   - 新增「Phase 4 完成判準」3 條（單一出口、snapshot 解耦、smoke 通過）
+3. `SETUP_GUIDE.md` 同步 Phase 3 結案操作資訊
+   - 新增「目前服務拓樸（Phase 3 結案）」路由流向說明
+   - 新增「重要環境變數（Phase 3）」鍵值整理
+   - 新增「Phase 3 Smoke 驗證」執行指令與驗證重點
+   - Kubernetes 部署與 rollout 範例補上 `auth-service`、`tire-service`
+
+### 分段原因說明
+- Phase 3 功能已完成且 smoke 通過，需補齊文件才能正式收斂階段成果。
+- Phase 4 是下一個高風險拆分（Order + Snapshot），先在 README 第 12 節細拆執行步驟，可避免一次大改造成驗證盲區。
+
+### 驗證結果
+- 已檢查：
+  - `README.md` 第 12 節已出現 Phase 3 結案總結與 Phase 4 細項/判準
+  - `SETUP_GUIDE.md` 已補齊 Phase 3 路由拓樸、環境變數與 smoke 指令
+- 本步為文件更新，未改動執行邏輯與部署參數。
+
+### 小總結
+- Phase 3 已完成文件層結案，Phase 4 已有可執行的分步規劃，可直接進入下一階段實作。
