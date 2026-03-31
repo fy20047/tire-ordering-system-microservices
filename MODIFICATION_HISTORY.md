@@ -1511,3 +1511,49 @@
 
 ### 小總結
 - Snapshot 模型已在 `order-service` 落地：新訂單會保存下單當下輪胎資訊，後台查單改讀訂單 snapshot，不再依賴 JPA 直接關聯輪胎主檔。
+
+## 2026-04-01 - Step 7E：建單改為呼叫 tire-service 驗證商品可下單
+
+### 對應清單項目
+- `README.md` §12 Phase 4 細項 5：建單流程改造：建單時呼叫 `tire-service` 驗證商品可下單，並寫入 snapshot。
+
+### 本次修改檔案
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/client/TireServiceClient.java`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/service/OrderService.java`（更新）
+- `order-service/src/main/resources/application.yaml`（更新）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/entity/Tire.java`（刪除）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/repository/TireRepository.java`（刪除）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 新增跨服務客戶端 `TireServiceClient`
+   - 透過 HTTP `GET /api/tires/{id}` 呼叫 `tire-service`。
+   - 解析成功回應為 `TireProduct`（id/brand/series/origin/size/price/isActive）。
+   - 對 4xx / 5xx / 網路異常做一致化例外轉換，供 `OrderService` 決策。
+2. `OrderService` 改用跨服務驗證
+   - 移除 `TireRepository` 注入，改注入 `TireServiceClient`。
+   - 建單流程改為先查 `tire-service`，再做可下單檢查（上架、價格合法）。
+   - 驗證通過後將回傳資料寫入訂單 snapshot 欄位。
+3. 移除本地 Tire 資料依賴
+   - 刪除 `order-service` 內的 `Tire` entity 與 `TireRepository`。
+   - 讓 `order-service` 不再直接讀取輪胎資料表。
+4. 新增整合設定
+   - `application.yaml` 新增 `integration.tire-service.base-url`（預設可由 `TIRE_BASE_URL` 覆蓋）。
+
+### 註解規範對齊
+- 新增與修改程式段落均補上中文註解，包含：
+  - 檔案用途
+  - 跨服務呼叫段落用途
+  - 錯誤處理與 URL 正規化用途
+
+### 分段原因說明
+- Step 7D 已完成 snapshot 欄位模型，Step 7E 專注完成「資料來源」切換到 `tire-service`，避免同一步驟再混入 Gateway/部署層路由切換。
+- 先讓 `order-service` 在程式層完成去耦，再於後續步驟做流量分流與 backend 入口收斂。
+
+### 驗證結果
+- 已執行編譯打包檢查：
+  - `.\mvnw.cmd -q -DskipTests -f ..\order-service\pom.xml package`（於 `backend` 目錄執行）
+- 結果：成功。
+
+### 小總結
+- 建單流程已改為透過 `tire-service` 驗證可下單並寫入 snapshot，`order-service` 不再直接依賴輪胎資料表。

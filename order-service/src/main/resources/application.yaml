@@ -25,6 +25,13 @@ security:
     public-key: ${JWT_PUBLIC_KEY}
     expiration-seconds: ${JWT_EXPIRATION_SECONDS:3600}
 
+# 跨服務整合設定：
+# 建單時會呼叫 tire-service 驗證商品可下單，並用回傳資料寫入訂單 snapshot。
+integration:
+  tire-service:
+    # 可由環境變數覆蓋，便於 compose/k8s 依環境切換服務位址。
+    base-url: ${TIRE_BASE_URL:http://tire-service:8080}
+
 # 維運端點：
 # 先開 health/info，讓容器探針與 K8s 檢查可直接使用。
 management:

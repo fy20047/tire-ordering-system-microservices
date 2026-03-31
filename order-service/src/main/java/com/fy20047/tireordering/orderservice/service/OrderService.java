@@ -1,11 +1,10 @@
 package com.fy20047.tireordering.orderservice.service;
 
+import com.fy20047.tireordering.orderservice.client.TireServiceClient;
 import com.fy20047.tireordering.orderservice.entity.Order;
-import com.fy20047.tireordering.orderservice.entity.Tire;
 import com.fy20047.tireordering.orderservice.enums.InstallationOption;
 import com.fy20047.tireordering.orderservice.enums.OrderStatus;
 import com.fy20047.tireordering.orderservice.repository.OrderRepository;
-import com.fy20047.tireordering.orderservice.repository.TireRepository;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,38 +16,38 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class OrderService {
 
-    // 這段欄位用途：訂單資料儲存與輪胎主檔查詢（Step 7D 先用本地查詢填 snapshot）。
+    // 這段欄位用途：訂單資料儲存與跨服務輪胎查詢（透過 tire-service 驗證可下單）。
     private final OrderRepository orderRepository;
-    private final TireRepository tireRepository;
+    private final TireServiceClient tireServiceClient;
 
-    public OrderService(OrderRepository orderRepository, TireRepository tireRepository) {
+    public OrderService(OrderRepository orderRepository, TireServiceClient tireServiceClient) {
         this.orderRepository = orderRepository;
-        this.tireRepository = tireRepository;
+        this.tireServiceClient = tireServiceClient;
     }
 
     // 這段方法用途：建立新訂單，包含輸入驗證、商品可下單檢查與 snapshot 寫入。
     public Order createOrder(CreateOrderCommand command) {
         validate(command);
 
-        Tire tire = tireRepository.findById(command.tireId())
-                .orElseThrow(() -> new IllegalArgumentException("Tire not found"));
+        // 這段呼叫用途：改為向 tire-service 查詢商品，解除對本地 Tire 資料表的直接依賴。
+        TireServiceClient.TireProduct tire = tireServiceClient.getTireById(command.tireId());
 
         if (!tire.isActive()) {
             throw new IllegalStateException("Tire is not available");
         }
         // 這段檢查用途：避免寫入無效價格到 snapshot。
-        if (tire.getPrice() == null || tire.getPrice() < 0) {
+        if (tire.price() == null || tire.price() < 0) {
             throw new IllegalStateException("Tire price is invalid");
         }
 
         // 這段建模用途：將輪胎資訊拷貝成 snapshot 欄位，避免後續輪胎主檔變動影響歷史訂單。
         Order order = Order.builder()
-                .tireId(tire.getId())
-                .tireSnapshotBrand(tire.getBrand())
-                .tireSnapshotSeries(tire.getSeries())
-                .tireSnapshotOrigin(tire.getOrigin())
-                .tireSnapshotSize(tire.getSize())
-                .tireSnapshotPrice(tire.getPrice())
+                .tireId(tire.id())
+                .tireSnapshotBrand(tire.brand())
+                .tireSnapshotSeries(tire.series())
+                .tireSnapshotOrigin(tire.origin())
+                .tireSnapshotSize(tire.size())
+                .tireSnapshotPrice(tire.price())
                 .quantity(command.quantity())
                 .customerName(normalize(command.customerName()))
                 .phone(normalize(command.phone()))
