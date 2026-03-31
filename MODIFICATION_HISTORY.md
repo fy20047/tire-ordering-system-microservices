@@ -966,3 +966,45 @@
 
 ### 小總結
 - Phase 3 已正式進入程式碼階段，`tire-service` 骨架可獨立 build；下一步可開始搬移 Tire 領域核心類別。
+
+## 2026-03-31 - Step 6C：搬移 Tire 核心領域類別到 tire-service
+
+### 對應清單項目
+- `README.md` §12 Phase 3 細項 2：搬移 Tire 領域核心（`Tire`、`TireRepository`、`TireService`），維持既有資料表與查詢行為。
+
+### 本次修改檔案
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/entity/Tire.java`（新增）
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/repository/TireRepository.java`（新增）
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/service/TireService.java`（新增）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 新增 `Tire` Entity
+   - 對應資料表 `tires`
+   - 保留欄位定義：`brand/series/origin/size/price/is_active/created_at/updated_at`
+   - 保留 `@PrePersist/@PreUpdate` 時間戳記邏輯
+2. 新增 `TireRepository`
+   - 保留 `findActiveTires()` 查詢（僅上架 + 固定排序）
+   - 保留 `search(...)` 條件查詢（brand/series/size/active，空值可略過）
+3. 新增 `TireService`
+   - 保留公開查詢：`getActiveTires()`、`getAllTires()`
+   - 保留後台維護：`searchTires()`、`createTire()`、`updateTire()`、`updateActiveStatus()`
+   - 保留 `getTireById()` 找不到時拋出 `IllegalArgumentException("Tire not found")`
+   - 保留查詢輸入正規化 `normalize()` 行為
+
+### 註解規範對齊
+- 本步新增的 3 份程式檔案皆補齊中文註解：
+  - 檔案最上方用途說明
+  - 各段（欄位、查詢、方法）開頭用途說明
+
+### 分段原因說明
+- 先只搬移「核心領域層」，暫不搬 Controller 與 DTO，可把風險控制在資料模型與服務邏輯範圍。
+- 這樣下一步搬 API 時，僅需處理 controller/response mapping 與安全放行，不會同時混入資料層變動。
+
+### 驗證結果
+- 已執行編譯打包檢查：
+  - `.\mvnw.cmd -q -f ..\tire-service\pom.xml -DskipTests package`
+- 結果：成功。
+
+### 小總結
+- `tire-service` 已具備獨立的 Tire 核心領域能力；下一步可搬移公開 Tire API（`/api/tires`、`/api/tires/{id}`）。
