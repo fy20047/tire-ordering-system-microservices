@@ -5,7 +5,7 @@
 
 ## 專案設定 (Setup)
 1) 複製一份 `infra/.env.example` 並重新命名為 `infra/.env`
-2) 開啟 `.env` 填入必要的變數值（例如：資料庫密碼、管理員帳號密碼、JWT Secret 等）
+2) 開啟 `.env` 填入必要的變數值（例如：資料庫密碼、管理員帳號密碼、`JWT_PRIVATE_KEY`、`JWT_PUBLIC_KEY`）
 
 ## 啟動 (本地開發 / Local build)
 使用本地的 `Dockerfile` 重新建置映像檔：
@@ -23,13 +23,13 @@ docker compose -f infra/docker-compose.prod.yml --env-file infra/.env up -d
 ### 本地建置版本 (infra/docker-compose.yml):
 - 前端首頁: http://localhost:5173/
 - 後台登入: http://localhost:5173/admin/login
-- 後端健康狀態: http://localhost:8080/health
+- API 健康狀態（經 Gateway）: http://localhost:8080/api/health
 - 資料庫管理 (Adminer): http://localhost:8081/
 
 ### GHCR 部署版本 (infra/docker-compose.prod.yml):
 - 前端首頁: http://localhost/
 - 後台登入: http://localhost/admin/login
-- 後端健康狀態: http://localhost:8080/health
+- API 健康狀態（經 Gateway）: http://localhost:8080/api/health
 - 資料庫管理 (Adminer): http://localhost:8081/
 
 ## 停止服務 (Stop)
@@ -62,10 +62,15 @@ kubectl create namespace tire-ordering
 kubectl -n tire-ordering create secret generic db-secret --from-literal=MARIADB_DATABASE=tire_shop --from-literal=MARIADB_USER=app --from-literal=MARIADB_PASSWORD=changeme --from-literal=MARIADB_ROOT_PASSWORD=changeme
 ```
 2-2. 建立應用程式相關的 Secret (app-secret)
-- 包含 JWT 加密金鑰、管理員帳號與密碼
-- 'changeme' 也要替換成想要設定的真實密碼
+- 包含 JWT RS256 金鑰（private/public key）、管理員帳號與密碼
+- `replace_with_private_key` / `replace_with_public_key` 與 `changeme` 都要替換成真實值
 ```powershell
-kubectl -n tire-ordering create secret generic app-secret --from-literal=JWT_SECRET=changeme --from-literal=ADMIN_USERNAME=admin --from-literal=ADMIN_PASSWORD=changeme
+kubectl -n tire-ordering create secret generic app-secret `
+  --from-literal=JWT_PRIVATE_KEY='__REMOVED_PRIVATE_KEY__' `
+  --from-literal=JWT_PUBLIC_KEY='__REMOVED_PUBLIC_KEY__' `
+  --from-literal=ADMIN_USERNAME=admin `
+  --from-literal=ADMIN_PASSWORD=changeme `
+  --from-literal=BACKEND_AUTH_ENDPOINTS_ENABLED=false
 ```
 
 ## Sealed Secrets (Git 安全加密金鑰)
@@ -140,7 +145,7 @@ minikube start --driver=docker
 kubectl config use-context minikube
 ```
 ### 2. 部署應用程式
-使用 Kustomize 部署會用到的 K8s 資源 (DB, Backend, Frontend)，第一次部署前，要先確定有手動建立 Secret (上方的 db-secret, app-secret)
+使用 Kustomize 部署會用到的 K8s 資源 (DB, Backend, API Gateway, Frontend)，第一次部署前，要先確定有手動建立 Secret (上方的 db-secret, app-secret)
 ```powershell
 # Apply manifests
 kubectl apply -k k8s/overlays/minikube
@@ -169,6 +174,7 @@ kubectl apply -k k8s/overlays/minikube
 ```powershell
 kubectl -n tire-ordering rollout restart deployment frontend
 kubectl -n tire-ordering rollout restart deployment backend
+kubectl -n tire-ordering rollout restart deployment api-gateway
 ```
 
 ## ArgoCD 部署 (Minikube)

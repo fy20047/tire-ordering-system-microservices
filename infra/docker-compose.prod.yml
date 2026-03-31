@@ -37,15 +37,55 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
       JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-3600}
+      JWT_REFRESH_EXPIRATION_SECONDS: ${JWT_REFRESH_EXPIRATION_SECONDS:-1209600}
+      JWT_REFRESH_COOKIE_NAME: ${JWT_REFRESH_COOKIE_NAME:-refreshToken}
+      JWT_REFRESH_COOKIE_SECURE: ${JWT_REFRESH_COOKIE_SECURE:-false}
+      JWT_REFRESH_COOKIE_SAME_SITE: ${JWT_REFRESH_COOKIE_SAME_SITE:-Lax}
+      BACKEND_AUTH_ENDPOINTS_ENABLED: ${BACKEND_AUTH_ENDPOINTS_ENABLED:-false}
       ADMIN_USERNAME: ${ADMIN_USERNAME}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
-    ports:
-      - "8080:8080"
     depends_on:
       mariadb:
         condition: service_healthy
+
+  auth-service:
+    image: ghcr.io/fy20047/tire-ordering-system/auth-service:latest
+    container_name: tire_auth_service
+    restart: always
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-3600}
+      JWT_REFRESH_EXPIRATION_SECONDS: ${JWT_REFRESH_EXPIRATION_SECONDS:-1209600}
+      JWT_REFRESH_COOKIE_NAME: ${JWT_REFRESH_COOKIE_NAME:-refreshToken}
+      JWT_REFRESH_COOKIE_SECURE: ${JWT_REFRESH_COOKIE_SECURE:-false}
+      JWT_REFRESH_COOKIE_SAME_SITE: ${JWT_REFRESH_COOKIE_SAME_SITE:-Lax}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  api-gateway:
+    image: ghcr.io/fy20047/tire-ordering-system/api-gateway:latest
+    container_name: tire_api_gateway
+    restart: always
+    environment:
+      BACKEND_BASE_URL: http://backend:8080
+      AUTH_BASE_URL: http://auth-service:8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+      - auth-service
 
   frontend:
     image: ghcr.io/fy20047/tire-ordering-system/frontend:latest
@@ -54,7 +94,7 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - backend
+      - api-gateway
 
 volumes:
   mariadb_data:

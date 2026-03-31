@@ -617,3 +617,46 @@
 
 ### 小總結
 - 對外 Auth 入口已由 Gateway 導向 `auth-service`，backend 重複 Auth 入口預設停用，服務邊界已落地。
+
+## 2026-03-31 - Step 5D-1A：同步 Docker Compose/.env/Setup Guide（部署層第一段）
+
+### 對應清單項目
+- `README.md` §12 Phase 2 細項 6：更新部署與文件（`docker-compose`、`.env.example`、操作指引）。
+
+### 本次修改檔案
+- `infra/docker-compose.yml`（更新）
+- `infra/docker-compose.prod.yml`（更新）
+- `infra/.env.example`（更新）
+- `SETUP_GUIDE.md`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. `infra/docker-compose.yml`
+   - `backend` 環境變數改為 `JWT_PRIVATE_KEY/JWT_PUBLIC_KEY`，並補上 refresh cookie 相關設定與 `BACKEND_AUTH_ENDPOINTS_ENABLED`。
+   - 新增 `auth-service` 服務，承接 Auth API。
+   - `api-gateway` 新增 `AUTH_BASE_URL=http://auth-service:8080`，讓 `/api/admin/login|refresh|logout` 可正確轉發。
+2. `infra/docker-compose.prod.yml`
+   - 同步 `backend` RS256 與 feature flag 環境變數。
+   - 新增 `auth-service` 與 `api-gateway`（GHCR image），並讓 `frontend` 依賴 `api-gateway`。
+3. `infra/.env.example`
+   - 由 `JWT_SECRET` 改為 `JWT_PRIVATE_KEY`、`JWT_PUBLIC_KEY` 範本。
+   - 新增 refresh cookie 相關設定與 `BACKEND_AUTH_ENDPOINTS_ENABLED=false` 預設值。
+4. `SETUP_GUIDE.md`
+   - Setup 說明改為 RS256 key（不再提 `JWT_SECRET`）。
+   - 連線資訊改為 `http://localhost:8080/api/health`（經 Gateway）。
+   - Kubernetes `app-secret` 建立指令改為 `JWT_PRIVATE_KEY/JWT_PUBLIC_KEY` + `BACKEND_AUTH_ENDPOINTS_ENABLED`。
+   - 部署資源描述補上 `API Gateway`，rollout 範例補 `api-gateway`。
+
+### 分段原因說明
+- Step 5D 涉及 compose、k8s、文件、驗證腳本，改動面很廣。
+- 先完成 `5D-1A`（compose + env + setup guide）可先確保「本機/部署啟動參數」與 Step 5C 路由邏輯一致，再進入 `5D-1B` 的 K8s 與 smoke 收尾。
+- 這樣能把「啟動配置問題」與「K8s 路由/密鑰問題」分開排查，降低除錯耦合。
+
+### 驗證結果
+- 已執行：
+  - `docker compose -f infra/docker-compose.yml --env-file infra/.env.example config`
+  - `docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.example config`
+- 兩者皆可成功解析，確認 compose 結構與新環境變數對應正確。
+
+### 小總結
+- Step 5D 第一段已完成：本機與部署入口都已具備 `backend + auth-service + api-gateway` 的必要設定，且 RS256 參數來源一致。
