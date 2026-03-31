@@ -50,14 +50,18 @@ public class ApiProxyController {
     private final String backendBaseUrl;
     // auth-service 的 base URL（login/refresh/logout 走這條）。
     private final String authBaseUrl;
+    // tire-service 的 base URL（輪胎查詢與後台輪胎管理走這條）。
+    private final String tireBaseUrl;
 
     // 建構子注入設定值並初始化 HttpClient。
     public ApiProxyController(
             @Value("${gateway.backend-base-url:http://backend:8080}") String backendBaseUrl,
-            @Value("${gateway.auth-base-url:http://auth-service:8080}") String authBaseUrl
+            @Value("${gateway.auth-base-url:http://auth-service:8080}") String authBaseUrl,
+            @Value("${gateway.tire-base-url:http://tire-service:8080}") String tireBaseUrl
     ) {
         this.backendBaseUrl = normalizeBaseUrl(backendBaseUrl);
         this.authBaseUrl = normalizeBaseUrl(authBaseUrl);
+        this.tireBaseUrl = normalizeBaseUrl(tireBaseUrl);
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
@@ -125,23 +129,36 @@ public class ApiProxyController {
 
     // 依 API 路徑決定要轉發到哪個服務：
     // - /api/admin/login|refresh|logout -> auth-service
+    // - /api/tires/** 與 /api/admin/tires/** -> tire-service
     // - 其餘 -> backend
     private String resolveTargetBaseUrl(String requestUri) {
         if (isAuthEntryPath(requestUri)) {
             return authBaseUrl;
+        }
+        if (isTirePath(requestUri)) {
+            return tireBaseUrl;
         }
         return backendBaseUrl;
     }
 
     // 僅匹配 Auth 對外入口，避免把 admin 業務 API（如 /api/admin/orders）誤導到 auth-service。
     private boolean isAuthEntryPath(String requestUri) {
-        String normalizedPath = requestUri;
-        if (normalizedPath.endsWith("/") && normalizedPath.length() > 1) {
-            normalizedPath = normalizedPath.substring(0, normalizedPath.length() - 1);
-        }
+        String normalizedPath = normalizePath(requestUri);
         return normalizedPath.equals("/api/admin/login")
                 || normalizedPath.equals("/api/admin/refresh")
                 || normalizedPath.equals("/api/admin/logout");
+    }
+
+    // 僅匹配 Tire API 入口，避免把其他 admin 業務 API 誤導到 tire-service。
+    private boolean isTirePath(String requestUri) {
+        String normalizedPath = normalizePath(requestUri);
+        return matchesPathPrefix(normalizedPath, "/api/tires")
+                || matchesPathPrefix(normalizedPath, "/api/admin/tires");
+    }
+
+    // 路徑比對工具：只接受完整段落匹配（prefix 本身或 prefix + "/"）。
+    private boolean matchesPathPrefix(String normalizedPath, String prefix) {
+        return normalizedPath.equals(prefix) || normalizedPath.startsWith(prefix + "/");
     }
 
     // 複製 inbound headers 到 outbound，排除不應直接轉發的 header。
@@ -165,5 +182,13 @@ public class ApiProxyController {
             return rawBaseUrl.substring(0, rawBaseUrl.length() - 1);
         }
         return rawBaseUrl;
+    }
+
+    // 去除 path 結尾斜線，避免路徑比對時出現 /a 與 /a/ 不一致。
+    private String normalizePath(String requestUri) {
+        if (requestUri.endsWith("/") && requestUri.length() > 1) {
+            return requestUri.substring(0, requestUri.length() - 1);
+        }
+        return requestUri;
     }
 }

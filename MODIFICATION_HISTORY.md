@@ -1095,3 +1095,47 @@
 
 ### 小總結
 - `tire-service` 已具備公開 + 後台完整 Tire API；下一步可進入 Gateway 分流調整與 backend 邊界收斂。
+
+## 2026-03-31 - Step 6F：Gateway 路由分流到 tire-service
+
+### 對應清單項目
+- `README.md` §12 Phase 3 細項 5：調整 Gateway 分流，將 `/api/tires/**` 與 `/api/admin/tires/**` 導向 `tire-service`。
+
+### 本次修改檔案
+- `api-gateway/src/main/java/com/fy20047/tireordering/apigateway/ApiProxyController.java`（更新）
+- `api-gateway/src/main/resources/application.yaml`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 擴充 Gateway 目標服務設定
+   - 新增 `gateway.tire-base-url`（環境變數 `TIRE_BASE_URL`，預設 `http://tire-service:8080`）
+2. 調整 `ApiProxyController` 分流規則
+   - 保持 Auth 入口優先：
+     - `/api/admin/login`
+     - `/api/admin/refresh`
+     - `/api/admin/logout`
+   - 新增 Tire 路由分流：
+     - `/api/tires`
+     - `/api/tires/**`
+     - `/api/admin/tires`
+     - `/api/admin/tires/**`
+   - 其餘路徑維持導向 `backend`
+3. 補強路徑比對工具方法
+   - 新增 `normalizePath(...)`，統一處理結尾斜線
+   - 新增 `matchesPathPrefix(...)`，避免 `/api/admin/**` 類過寬規則誤吃 Auth 路徑
+
+### 分段原因說明
+- 這一步只處理 Gateway 程式分流邏輯，不混入 compose/k8s 佈署調整，保持改動面可控。
+- 先在程式層完成正確分流規則，再於下一步收斂 backend 重複入口與部署同步，便於逐段驗證與回滾。
+
+### 驗證結果
+- 已執行編譯打包檢查：
+  - `.\mvnw.cmd -q -f ..\api-gateway\pom.xml -DskipTests package`
+- 結果：成功。
+
+### 注意事項
+- 本步尚未同步 `docker-compose` / `k8s` 的 `tire-service` 連線設定與部署清單。
+- 本步也尚未在 `backend` 停用重複 Tire API 入口（會在後續步驟處理）。
+
+### 小總結
+- Gateway 已具備 Tire 路徑分流能力，且不會誤導 Auth 入口；下一步可進行 backend Tire 入口收斂。
