@@ -540,3 +540,41 @@
 
 ### 小總結
 - Auth Service 已從 HS256 切換為 RS256；下一步會把驗章端（gateway/backend）同步調整，完成整體閉環。
+
+## 2026-03-31 - Step 5B-2：同步 backend 驗章設定至 RS256（gateway 無需程式變更）
+
+### 對應清單項目
+- `README.md` §12 Phase 2 細項 2：將驗章端同步切到 RS256。
+
+### 本次修改檔案
+- `backend/src/main/java/com/fy20047/tireordering/backend/config/JwtProperties.java`（更新）
+- `backend/src/main/java/com/fy20047/tireordering/backend/security/JwtService.java`（更新）
+- `backend/src/main/resources/application.yaml`（更新）
+- `backend/src/test/resources/application-test.yaml`（更新）
+- `backend/src/test/java/com/fy20047/tireordering/backend/security/JwtServiceTest.java`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. `JwtProperties` 改為 RS256 欄位
+   - 由 `secret` 改成 `privateKey` + `publicKey`。
+2. `backend` 的 `JwtService` 改為 RS256
+   - 簽章改用 `PrivateKey`。
+   - 驗章改用 `PublicKey`。
+   - 新增 PEM 解析流程（去頭尾、Base64 decode、RSA KeyFactory）。
+3. `backend` 設定改為 RS256 環境變數
+   - `security.jwt.private-key: ${JWT_PRIVATE_KEY}`
+   - `security.jwt.public-key: ${JWT_PUBLIC_KEY}`
+4. `backend` 測試設定與測試碼同步切換 RS256
+   - `application-test.yaml` 改為測試用 key pair。
+   - `JwtServiceTest` 改用 RS256 key pair 建立 `JwtProperties`。
+
+### 分段原因說明（延續）
+- 這一步聚焦在 `backend` 驗章端，確保它可驗證由 `auth-service`（RS256）簽發的 token。
+- `gateway` 目前僅做 HTTP 轉發，尚未實作 JWT 驗章程式，因此本步無 gateway 程式碼調整。
+- 路由切換（`/api/admin/login|refresh|logout` 指到 `auth-service`）會在下一階段 Step 5C 進行。
+
+### 驗證結果
+- 已執行 `backend` 全量測試：`.\mvnw.cmd -q test`，測試通過。
+
+### 小總結
+- 驗章端已完成 RS256 同步，接下來可安全進行 gateway 路由切換與 backend Auth 入口收斂。

@@ -11,11 +11,21 @@ import org.junit.jupiter.api.Test;
 
 class JwtServiceTest {
 
+    // 測試用 RS256 金鑰（與 application-test.yaml 同組）
+    private static final String TEST_PRIVATE_KEY = """
+            __REMOVED_PRIVATE_KEY__
+            """;
+
+    private static final String TEST_PUBLIC_KEY = """
+            __REMOVED_PUBLIC_KEY__
+            """;
+
     @Test
     // 自己生的 token，自己要讀得出來
     void generateToken_shouldIncludeSubjectAndRole() {
         JwtProperties properties = new JwtProperties(
-                "0123456789abcdef0123456789abcdef",
+                TEST_PRIVATE_KEY,
+                TEST_PUBLIC_KEY,
                 3600,
                 0,
                 "refresh",
@@ -42,7 +52,8 @@ class JwtServiceTest {
     // 收到垃圾或是假的，要報錯
     void parseToken_whenInvalid_shouldThrow() {
         JwtProperties properties = new JwtProperties(
-                "0123456789abcdef0123456789abcdef",
+                TEST_PRIVATE_KEY,
+                TEST_PUBLIC_KEY,
                 3600,
                 0,
                 "refresh",

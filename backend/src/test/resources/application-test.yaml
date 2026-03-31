@@ -10,7 +10,10 @@ spring:
 
 security:
   jwt:
-    secret: "0123456789abcdef0123456789abcdefbcdef01234bcdefbcbcdefbc567"
+    private-key: |-
+      __REMOVED_PRIVATE_KEY__
+    public-key: |-
+      __REMOVED_PUBLIC_KEY__
     expiration-seconds: 3600
     refresh-expiration-seconds: 1209600
     refresh-cookie-name: refreshToken
