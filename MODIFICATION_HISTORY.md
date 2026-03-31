@@ -1288,3 +1288,36 @@
 
 ### 小總結
 - Phase 3 已完成文件層結案，Phase 4 已有可執行的分步規劃，可直接進入下一階段實作。
+
+## 2026-04-01 - Step 6J：補充 Snapshot 概念與實作說明（Phase 4 文件加強）
+
+### 對應需求
+- 使用者要求：將 Snapshot 重要概念寫入文件，並說明實作方式。
+
+### 本次修改檔案
+- `README.md`（更新）
+- `SETUP_GUIDE.md`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. `README.md`
+   - 在 Phase 4 區塊新增「Snapshot 概念與實作方式」：
+     - 為何需要 snapshot
+     - 服務邊界歸屬（snapshot 屬於 order-service）
+     - 建議資料模型欄位
+     - 建單流程實作順序
+     - Phase 4 smoke 驗證重點
+2. `SETUP_GUIDE.md`
+   - 新增「Phase 4 Snapshot 設計說明（開工前必讀）」：
+     - 概念、角色分工、實作重點與回歸驗證方式
+
+### 分段原因說明
+- Snapshot 是 Phase 4 的關鍵資料一致性策略，若未先在文件明確定義，實作時容易回到「即時 join 主檔」導致歷史污染。
+- 先把概念與驗證標準寫清楚，可降低後續 API/DB 改造爭議與回歸風險。
+
+### 驗證結果
+- 已確認 `README.md` 與 `SETUP_GUIDE.md` 皆可直接看到 Snapshot 的「原因 + 做法 + 驗證」三段說明。
+- 本步為文件更新，未更動程式邏輯。
+
+### 小總結
+- Snapshot 的設計原則與實作路徑已文件化，Phase 4 可依此直接落地開發與驗證。

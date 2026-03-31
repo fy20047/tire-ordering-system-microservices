@@ -69,6 +69,19 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke\run-smoke-gateway.ps1 `
 ```
 驗證重點：公開輪胎查詢、後台輪胎 CRUD/上下架、授權失敗路徑、登入刷新登出、訂單核心流程。
 
+## Phase 4 Snapshot 設計說明（開工前必讀）
+- 核心概念：
+  - Snapshot 是「下單當下商品快照」，用來保證歷史訂單資料不被商品主檔後續變更影響。
+- 角色分工：
+  - `tire-service`：維護商品主檔最新資料。
+  - `order-service`：建單時向 `tire-service` 取值，寫入 `tireId + tireSnapshot`。
+- 實作重點：
+  - 訂單表新增 snapshot 欄位（品牌/系列/尺寸/價格等），移除對 Tire Entity 的直接關聯依賴。
+  - 查單 API 以 snapshot 為主，不再即時 join 商品主檔。
+- 回歸驗證：
+  - 建單後修改輪胎主檔，再查舊訂單應維持原 snapshot。
+  - 新建訂單應採用修改後新值。
+
 ## Kubernetes Secrets (Minikube 環境)
 在部署 `k8s/overlays/minikube` 之前必須先建立好 Secret
 ### 1. 創建 Namespace

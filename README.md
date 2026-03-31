@@ -619,6 +619,29 @@ Config 與 Secret 原則：
 2. `order-service` 不再直接依賴 Tire 資料表關聯，改以 `tireId + snapshot` 運作
 3. Phase 4 smoke 全部通過，前端操作路徑維持不變
 
+### Phase 4 Snapshot 概念與實作方式
+
+- 為什麼要 snapshot：
+  - 訂單是歷史憑證，必須保留「下單當下」商品資訊，不可被後續商品改價/改名/下架污染。
+- 放在哪裡：
+  - snapshot 屬於 `order-service`，不是 `tire-service`。
+  - `tire-service` 只維護商品主檔最新狀態；`order-service` 才負責歷史凍結。
+- 建議資料模型：
+  - `order.tire_id`（僅做追溯引用）
+  - `order.tire_snapshot_brand`
+  - `order.tire_snapshot_series`
+  - `order.tire_snapshot_size`
+  - `order.tire_snapshot_price`
+  - （可選）`order.tire_snapshot_origin`
+- 建單流程（實作順序）：
+  1. `order-service` 收到建單請求（含 `tireId`）。
+  2. 呼叫 `tire-service` 查詢該商品並驗證可下單（存在、上架、價格合法）。
+  3. 將回傳的商品資訊拷貝成 snapshot 欄位，與訂單一起入庫。
+  4. 後續查單/後台查單優先回傳 snapshot，不即時 join tire 主檔。
+- 驗證重點（Phase 4 smoke）：
+  - 建單後修改輪胎主檔價格/名稱，舊訂單顯示仍為舊 snapshot 值。
+  - 新訂單則採用修改後的新值（表示 snapshot 是「建單時刻」快照）。
+
 ---
 
 ## 13. 目標目錄結構（最終樣貌）
