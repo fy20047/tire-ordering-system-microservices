@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  # Gateway Deployment：Phase 1 先作為統一 API 入口，業務仍由 backend 處理
+  # Gateway Deployment：Phase 2 持續作為統一 API 入口，Auth API 轉發到 auth-service
   name: api-gateway
   labels:
     app: api-gateway
@@ -23,9 +23,12 @@ spec:
             - name: http
               containerPort: 8080
           env:
-            # Gateway 先把 /api 轉發回舊 backend service（Phase 1）
+            # 這段用途：業務 API 仍轉發到 backend（tire/order 維持在 monolith）。
             - name: BACKEND_BASE_URL
               value: http://backend:8080
+            # 這段用途：Auth API（login/refresh/logout）轉發到 auth-service。
+            - name: AUTH_BASE_URL
+              value: http://auth-service:8080
           readinessProbe:
             # 用 actuator health 判斷是否可接流量
             httpGet:

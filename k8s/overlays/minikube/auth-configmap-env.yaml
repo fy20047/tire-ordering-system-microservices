@@ -1,16 +1,20 @@
+# 這份檔案用途：
+# 以 patch 方式補齊 auth-service 的非機密環境變數，統一由 app-config 提供。
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend
+  # 這段用途：指定要 patch 的目標 Deployment。
+  name: auth-service
 spec:
   template:
     spec:
       containers:
-        - name: backend
+        - name: auth-service
           env:
+            # 這段用途：資料庫連線位置改由 ConfigMap 管理，避免硬編碼在 base。
             - name: DB_HOST
               valueFrom:
-                configMapKeyRef: # 去查 ConfigMap
+                configMapKeyRef:
                   name: app-config
                   key: DB_HOST
             - name: DB_PORT
@@ -23,6 +27,7 @@ spec:
                 configMapKeyRef:
                   name: app-config
                   key: DB_NAME
+            # 這段用途：JWT 到期與 refresh cookie 行為統一走 app-config。
             - name: JWT_EXPIRATION_SECONDS
               valueFrom:
                 configMapKeyRef:
@@ -48,8 +53,3 @@ spec:
                 configMapKeyRef:
                   name: app-config
                   key: JWT_REFRESH_COOKIE_SAME_SITE
-            - name: BACKEND_AUTH_ENDPOINTS_ENABLED
-              valueFrom:
-                configMapKeyRef:
-                  name: app-config
-                  key: BACKEND_AUTH_ENDPOINTS_ENABLED

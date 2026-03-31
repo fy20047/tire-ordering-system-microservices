@@ -660,3 +660,74 @@
 
 ### 小總結
 - Step 5D 第一段已完成：本機與部署入口都已具備 `backend + auth-service + api-gateway` 的必要設定，且 RS256 參數來源一致。
+
+## 2026-03-31 - Step 5D-1A-L：同步本機 `infra/.env`（Local only）
+
+### 對應需求
+- 使用者要求：雖不 push，也要同步修改本機 `infra/.env`。
+
+### 本次修改檔案
+- `infra/.env`（本機檔，更新，不入版控）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 將 `JWT_SECRET` 移除，改為 `JWT_PRIVATE_KEY`、`JWT_PUBLIC_KEY`。
+2. 補齊 JWT 相關參數：
+   - `JWT_EXPIRATION_SECONDS`
+   - `JWT_REFRESH_EXPIRATION_SECONDS`
+   - `JWT_REFRESH_COOKIE_NAME`
+   - `JWT_REFRESH_COOKIE_SECURE`
+   - `JWT_REFRESH_COOKIE_SAME_SITE`
+3. 補上 `BACKEND_AUTH_ENDPOINTS_ENABLED=false`，讓本機行為與 Step 5C/5D 設定一致。
+
+### 分段原因說明
+- `infra/.env.example` 屬於版控模板，`infra/.env` 屬於你的本機實際執行值。
+- 兩者需同步，否則會出現「模板是 RS256、實際執行仍是 HS256」的落差，造成本機啟動或測試結果偏差。
+
+### 備註
+- `infra/.env` 受 `.gitignore` 規則保護，預期不會被 commit/push。
+
+## 2026-03-31 - Step 5D-1B：同步 K8s 基礎資源（auth-service + gateway env + overlay 對齊）
+
+### 對應清單項目
+- `README.md` §12 Phase 2 細項 6：更新部署與文件（K8s 部署資源同步）。
+
+### 本次修改檔案
+- `k8s/base/auth-deployment.yaml`（新增）
+- `k8s/base/auth-service.yaml`（新增）
+- `k8s/base/gateway-deployment.yaml`（更新）
+- `k8s/base/kustomization.yaml`（更新）
+- `k8s/overlays/minikube/auth-configmap-env.yaml`（新增）
+- `k8s/overlays/minikube/app-config.yaml`（更新）
+- `k8s/overlays/minikube/backend-configmap-env.yaml`（更新）
+- `k8s/overlays/minikube/kustomization.yaml`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 新增 `auth-service` K8s 基礎資源
+   - 新增 `auth-deployment.yaml`：定義 image、probe、`app-secret`/`db-secret` 來源。
+   - 新增 `auth-service.yaml`：提供 cluster 內 `auth-service:8080` 服務名稱。
+2. 更新 Gateway base deployment
+   - 新增 `AUTH_BASE_URL=http://auth-service:8080`。
+   - 保留 `BACKEND_BASE_URL=http://backend:8080`，維持 tire/order API 先走 backend。
+3. 更新 base kustomization
+   - 納入 `auth-service.yaml`、`auth-deployment.yaml`。
+4. 更新 minikube overlay
+   - 新增 `auth-configmap-env.yaml`，讓 auth-service 的 DB/JWT 非機密參數由 `app-config` 注入。
+   - `app-config.yaml` 新增 `BACKEND_AUTH_ENDPOINTS_ENABLED=false`。
+   - `backend-configmap-env.yaml` 新增 `BACKEND_AUTH_ENDPOINTS_ENABLED` 注入。
+   - `kustomization.yaml` 新增 `auth-service` image 與 `auth-configmap-env.yaml` patch。
+
+### 分段原因說明
+- Step 5D-1A 先完成 compose/.env；Step 5D-1B 再專注 K8s，避免部署層一次混改太多面向。
+- K8s 本步先收斂「服務拓樸與路由參數」：補 auth-service 資源、補 gateway auth 路由參數、補 overlay 注入規則。
+- `app-sealedsecret.yaml` 的密文重封屬於 cluster-key 相依作業（需用目標叢集重新 kubeseal），因此放在下一小步以操作指引方式明確執行，避免提交無法解密的假密文。
+
+### 驗證結果
+- 已執行：
+  - `kubectl kustomize k8s/base`
+  - `kubectl kustomize k8s/overlays/minikube`
+- 兩者皆可成功輸出，確認新增 `auth-service` 與更新後的 env/route 設定可被 kustomize 正確組裝。
+
+### 小總結
+- K8s 佈署拓樸已對齊 Phase 2：Gateway 可分流到 `auth-service`，且 minikube overlay 已補齊 auth-service 與 backend 的必要參數注入結構。
