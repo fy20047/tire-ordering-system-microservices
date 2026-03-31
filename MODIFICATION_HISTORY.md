@@ -922,3 +922,47 @@
 
 ### 小總結
 - Phase 3 的路線圖已正式落在執行清單，接下來可按步驟進入 `tire-service` 骨架實作。
+
+## 2026-03-31 - Step 6B：建立 tire-service 專案骨架（Phase 3 第一步）
+
+### 對應清單項目
+- `README.md` §12 Phase 3 細項 1：建立 `tire-service` 專案骨架（Spring MVC + JPA + Security 驗章），先確保可獨立 build/run。
+
+### 本次修改檔案
+- `tire-service/pom.xml`（新增）
+- `tire-service/Dockerfile`（新增）
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/TireServiceApplication.java`（新增）
+- `tire-service/src/main/resources/application.yaml`（新增）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 新增 `tire-service` Maven 專案骨架
+   - 建立 `pom.xml`，納入 Phase 3 後續搬移所需基礎依賴：
+     - Spring MVC、Data JPA、Validation、Security、Actuator
+     - JWT（jjwt-api/impl/jackson）
+     - MariaDB Driver、Lombok、測試依賴（Spring Test/H2）
+2. 新增 `TireServiceApplication` 啟動入口
+   - 讓 `tire-service` 可獨立啟動，作為後續搬移 Tire Controller/Service/Repository 的承接點。
+3. 新增 `application.yaml` 基礎設定
+   - 服務名稱：`tire-service`
+   - datasource：沿用既有 MariaDB 參數格式（先拆邊界，不先改資料庫策略）
+   - JPA：`ddl-auto: update`
+   - security.jwt：預留 RS256 `private-key/public-key` 與 token 期限參數
+   - management：開放 `health,info`
+4. 新增 `Dockerfile`
+   - 使用兩階段建置（build/runtime），減少 runtime 映像體積
+   - 保留 `JAVA_OPTS` 注入點，方便部署時調整 JVM 參數
+
+### 註解規範對齊
+- 本步新增檔案皆已補上中文註解：
+  - 檔案最上方用途說明
+  - 每段區塊開頭用途說明
+  - `Dockerfile` 各段落含「為何這樣做」的說明
+
+### 驗證結果
+- 已執行編譯打包檢查：
+  - `.\mvnw.cmd -q -f ..\tire-service\pom.xml -DskipTests package`
+- 結果：成功。
+
+### 小總結
+- Phase 3 已正式進入程式碼階段，`tire-service` 骨架可獨立 build；下一步可開始搬移 Tire 領域核心類別。

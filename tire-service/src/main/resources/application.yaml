@@ -1,0 +1,34 @@
+# 這份設定檔用途：
+# 定義 Tire Service 的基礎執行參數（服務名稱、資料庫、JPA、JWT、維運端點）。
+spring:
+  # 服務識別名稱：方便日誌、監控與部署辨識。
+  application:
+    name: tire-service
+
+  # 資料庫連線：Phase 3 初期先沿用既有 MariaDB，先完成服務邊界拆分。
+  datasource:
+    url: "jdbc:mariadb://${DB_HOST:localhost}:${DB_PORT:3307}/${DB_NAME:tire_shop}"
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.mariadb.jdbc.Driver
+
+  # JPA 行為：開發期先用 update，避免啟動時清空資料。
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+# JWT 設定：
+# Tire Service 目前以「驗章端」為主，先預留 RS256 公私鑰欄位與 token 期限參數。
+security:
+  jwt:
+    private-key: ${JWT_PRIVATE_KEY}
+    public-key: ${JWT_PUBLIC_KEY}
+    expiration-seconds: ${JWT_EXPIRATION_SECONDS:3600}
+
+# 維運端點：
+# 先開 health/info，讓容器探針與 K8s 檢查可直接使用。
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
