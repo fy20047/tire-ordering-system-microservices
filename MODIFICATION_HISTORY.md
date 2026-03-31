@@ -378,3 +378,47 @@
 
 ### 小總結
 - 本次不改功能，只補可讀性與可維護性註解，讓後續每一步變更更容易審核與交接。
+
+## 2026-03-31 - Step 5A-2A：建立 auth-service 的 Auth 基礎層
+
+### 對應清單項目
+- `README.md` §12 Phase 2 細項 1：建立 `auth-service` 專案骨架後，先搬移登入/刷新/登出的共用基礎元件。
+
+### 本次修改檔案
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/AuthServiceApplication.java`（更新）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/config/JwtProperties.java`（新增）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/config/CorsConfig.java`（新增）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/dto/AdminLoginRequest.java`（新增）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/dto/AdminLoginResponse.java`（新增）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/dto/ErrorResponse.java`（新增）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/entity/Admin.java`（新增）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/entity/RefreshToken.java`（新增）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/repository/AdminRepository.java`（新增）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/repository/RefreshTokenRepository.java`（新增）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/controller/GlobalExceptionHandler.java`（新增）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 啟用 JWT 設定綁定
+   - 在 `AuthServiceApplication` 加上 `@EnableConfigurationProperties(JwtProperties.class)`。
+2. 建立登入流程共用設定層
+   - 新增 `JwtProperties`：集中管理 `security.jwt.*`。
+   - 新增 `CorsConfig`：放行 `/api/**` 並允許 cookie 請求。
+3. 建立 Auth API 共用資料結構
+   - 新增 `AdminLoginRequest`、`AdminLoginResponse`、`ErrorResponse`。
+4. 建立 Auth 所需資料模型與查詢介面
+   - 新增 `Admin`、`RefreshToken` Entity。
+   - 新增 `AdminRepository`、`RefreshTokenRepository`。
+5. 建立統一錯誤處理
+   - 新增 `GlobalExceptionHandler`，固定 400/409/500 回應格式。
+
+### 分段原因說明
+- `login/refresh/logout` 三支 API 會共享同一套 token 資料表、cookie 規則與錯誤格式，因此最終切流會「同步切換」。
+- 但實作先拆成 `基礎層 -> API 邏輯 -> Gateway 路由切換`，是為了降低單次改動面，讓每一步都可獨立編譯與審核。
+- 這樣可避免在同一步同時修改資料模型、業務邏輯、路由造成除錯困難，也符合「小步快跑但關聯項目一起改」。
+
+### 驗證結果
+- 已執行 `.\mvnw.cmd -q -DskipTests -f ..\auth-service\pom.xml package`，編譯成功。
+
+### 小總結
+- 本步先把 Auth 共用底座建好，下一步會接上 `login/refresh/logout` 的 service/controller 邏輯。

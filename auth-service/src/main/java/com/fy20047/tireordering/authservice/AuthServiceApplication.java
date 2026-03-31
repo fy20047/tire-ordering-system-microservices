@@ -1,11 +1,14 @@
 package com.fy20047.tireordering.authservice;
 
+import com.fy20047.tireordering.authservice.config.JwtProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 // 這個檔案用途：
 // Auth Service 的 Spring Boot 啟動入口，負責啟動 IoC 容器與載入同 package 下的元件。
 @SpringBootApplication
+@EnableConfigurationProperties(JwtProperties.class)
 public class AuthServiceApplication {
 
     // 主程式入口：
