@@ -1052,3 +1052,46 @@
 
 ### 小總結
 - `tire-service` 已可獨立承接公開輪胎查詢 API；下一步可搬移後台輪胎管理 API。
+
+## 2026-03-31 - Step 6E：搬移後台 Tire 管理 API 到 tire-service
+
+### 對應清單項目
+- `README.md` §12 Phase 3 細項 4：搬移後台輪胎 API（`/api/admin/tires`、`/api/admin/tires/{id}`、`/api/admin/tires/{id}/active`），含 DTO 與驗證規則。
+
+### 本次修改檔案
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/dto/AdminTireRequest.java`（新增）
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/dto/AdminTireResponse.java`（新增）
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/dto/AdminTireListResponse.java`（新增）
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/dto/UpdateTireStatusRequest.java`（新增）
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/controller/AdminTireController.java`（新增）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 新增後台管理 DTO
+   - `AdminTireRequest`：新增/編輯請求，保留 `@NotBlank/@Size/@Min/@NotNull` 驗證
+   - `AdminTireResponse`：單筆管理回應（含 `createdAt/updatedAt`）
+   - `AdminTireListResponse`：列表包裝回應（`items`）
+   - `UpdateTireStatusRequest`：上下架切換請求（僅 `isActive`）
+2. 新增 `AdminTireController`
+   - `GET /api/admin/tires`：支援品牌/系列/尺寸/上下架條件查詢
+   - `POST /api/admin/tires`：新增輪胎（回傳 `201 Created`）
+   - `PUT /api/admin/tires/{id}`：更新輪胎
+   - `PATCH /api/admin/tires/{id}/active`：切換上下架
+   - 保留 DTO/Entity 轉換與字串 trim 行為，對齊既有 backend 邏輯
+
+### 註解規範對齊
+- 本步新增檔案皆有中文註解：
+  - 檔案最上方用途說明
+  - API 與方法段落用途說明
+
+### 分段原因說明
+- 先把後台 API 也搬進 `tire-service`，但暫不切換 Gateway，能先完成「服務內功能對齊」。
+- 下一步再處理路由分流與 backend 重複入口收斂，可把功能問題與路由問題分開排查。
+
+### 驗證結果
+- 已執行編譯打包檢查：
+  - `.\mvnw.cmd -q -f ..\tire-service\pom.xml -DskipTests package`
+- 結果：成功。
+
+### 小總結
+- `tire-service` 已具備公開 + 後台完整 Tire API；下一步可進入 Gateway 分流調整與 backend 邊界收斂。
