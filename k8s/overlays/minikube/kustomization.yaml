@@ -16,9 +16,9 @@ resources:
 namespace: tire-ordering
 images:
 - name: ghcr.io/fy20047/tire-ordering-system-microservices/backend
-  newTag: 4d49cb520a4fb0a1ebec56f3c2ec92d9bda53419
+  newTag: 3e687ab557565073b8d4060365d6fc2340fccaf2
 - name: ghcr.io/fy20047/tire-ordering-system-microservices/frontend
-  newTag: 4d49cb520a4fb0a1ebec56f3c2ec92d9bda53419
+  newTag: 3e687ab557565073b8d4060365d6fc2340fccaf2
 - name: ghcr.io/fy20047/tire-ordering-system/api-gateway
   newTag: 3475216ddf09cf67a1e6f64a31a34ef5d6990a19
 - name: ghcr.io/fy20047/tire-ordering-system/auth-service
