@@ -1139,3 +1139,39 @@
 
 ### 小總結
 - Gateway 已具備 Tire 路徑分流能力，且不會誤導 Auth 入口；下一步可進行 backend Tire 入口收斂。
+
+## 2026-03-31 - Step 6G：收斂 backend 重複 Tire API 入口
+
+### 對應清單項目
+- `README.md` §12 Phase 3 細項 6：調整 backend 邊界，停用重複 Tire API 入口，保留 order 與其相依資料模型。
+
+### 本次修改檔案
+- `backend/src/main/java/com/fy20047/tireordering/backend/controller/TireController.java`（更新）
+- `backend/src/main/java/com/fy20047/tireordering/backend/controller/AdminTireController.java`（更新）
+- `backend/src/main/resources/application.yaml`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 停用 backend 公開 Tire 入口（預設）
+   - `TireController` 新增 `@ConditionalOnProperty`
+   - 條件鍵值：`feature.backend-tire-endpoints-enabled=true` 才啟用
+2. 停用 backend 後台 Tire 入口（預設）
+   - `AdminTireController` 新增同樣條件註解
+   - 讓 `/api/admin/tires/**` 預設不再由 backend 對外提供
+3. 新增可回切設定
+   - `application.yaml` 新增：
+     - `feature.backend-tire-endpoints-enabled: ${BACKEND_TIRE_ENDPOINTS_ENABLED:false}`
+   - 預設 `false`（符合 Phase 3 邊界收斂目標）
+   - 需要緊急回切時，可透過 `BACKEND_TIRE_ENDPOINTS_ENABLED=true` 臨時恢復 backend Tire 入口
+
+### 分段原因說明
+- 先用 feature flag 收斂重複入口，而不是直接刪除 controller，可保留回滾彈性。
+- 此步只調整 backend 對外入口，不動 order 相關 entity/service/repository，避免提早牽動 Phase 4。
+
+### 驗證結果
+- 已執行 backend 測試：
+  - `.\mvnw.cmd -q test`
+- 結果：成功。
+
+### 小總結
+- backend 的重複 Tire API 入口已可預設關閉，服務邊界開始收斂到 `tire-service`；下一步可同步部署層設定與 smoke 驗證。

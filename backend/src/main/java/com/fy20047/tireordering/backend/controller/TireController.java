@@ -6,6 +6,7 @@ import com.fy20047.tireordering.backend.entity.Tire;
 import com.fy20047.tireordering.backend.service.TireService;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,6 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/tires")
+@ConditionalOnProperty(
+        name = "feature.backend-tire-endpoints-enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 // 處理資料顯示與轉換（Get），資料庫 -> Service -> 輸出 DTO
 // 把資料庫裡的 Tire (Entity) 轉成前端能看的 TireResponse (DTO)
 // 預設 200 OK

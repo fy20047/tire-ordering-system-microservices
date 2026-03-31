@@ -9,6 +9,7 @@ import com.fy20047.tireordering.backend.service.TireService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +25,11 @@ import org.springframework.web.bind.annotation.RestController;
 // 後台輪胎 CRUD API（搜尋/新增/編輯/上下架）
 @RestController
 @RequestMapping("/api/admin/tires")
+@ConditionalOnProperty(
+        name = "feature.backend-tire-endpoints-enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 public class AdminTireController {
 
     private final TireService tireService;

@@ -23,3 +23,5 @@ security:
 # 預設停用 backend 自帶 Auth 入口，避免與 auth-service 重複對外提供 login/refresh/logout。
 feature:
   backend-auth-endpoints-enabled: ${BACKEND_AUTH_ENDPOINTS_ENABLED:false}
+  # 預設停用 backend 自帶 Tire 入口，避免與 tire-service 重複對外提供輪胎查詢與管理 API。
+  backend-tire-endpoints-enabled: ${BACKEND_TIRE_ENDPOINTS_ENABLED:false}
