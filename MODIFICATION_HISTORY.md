@@ -1008,3 +1008,47 @@
 
 ### 小總結
 - `tire-service` 已具備獨立的 Tire 核心領域能力；下一步可搬移公開 Tire API（`/api/tires`、`/api/tires/{id}`）。
+
+## 2026-03-31 - Step 6D：搬移公開 Tire API 到 tire-service
+
+### 對應清單項目
+- `README.md` §12 Phase 3 細項 3：搬移公開輪胎 API（`/api/tires`、`/api/tires/{id}`），含 DTO 與例外處理。
+
+### 本次修改檔案
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/dto/TireResponse.java`（新增）
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/dto/TireListResponse.java`（新增）
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/dto/ErrorResponse.java`（新增）
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/controller/TireController.java`（新增）
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/controller/GlobalExceptionHandler.java`（新增）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 新增公開查詢 DTO
+   - `TireResponse`：單筆輪胎資料回應
+   - `TireListResponse`：列表包裝回應（`items`）
+2. 新增統一錯誤 DTO
+   - `ErrorResponse`：`message + details` 格式，對齊現有前端錯誤處理模式
+3. 新增 `TireController`
+   - `GET /api/tires`：支援 `active` 參數（預設 `true`）
+   - `GET /api/tires/{id}`：單筆輪胎查詢
+   - 內含 Entity -> DTO 轉換方法，保持回應欄位一致
+4. 新增 `GlobalExceptionHandler`
+   - 統一處理驗證錯誤、型別錯誤、業務錯誤與未預期例外
+   - 狀態碼維持 `400/409/500` 對應規則
+
+### 註解規範對齊
+- 本步新增的所有 Java 檔案皆含中文註解：
+  - 檔案用途說明
+  - 各段 API/方法用途說明
+
+### 分段原因說明
+- 先只搬公開 Tire API，不把後台管理 API 混進同一步，可讓驗證聚焦在「前台查詢流程」。
+- 後台 API（admin tires）下一步再搬移，避免一次改動太多 DTO 與驗證規則。
+
+### 驗證結果
+- 已執行編譯打包檢查：
+  - `.\mvnw.cmd -q -f ..\tire-service\pom.xml -DskipTests package`
+- 結果：成功。
+
+### 小總結
+- `tire-service` 已可獨立承接公開輪胎查詢 API；下一步可搬移後台輪胎管理 API。
