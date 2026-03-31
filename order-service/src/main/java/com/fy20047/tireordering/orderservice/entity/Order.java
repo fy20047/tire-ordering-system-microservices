@@ -9,8 +9,6 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -22,7 +20,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 // 這個檔案用途：
-// Order 領域核心資料模型，對應既有 tire_orders 資料表，先保持相容欄位供 Phase 4 漸進搬移。
+// Order 領域核心資料模型，對應既有 tire_orders 資料表，採用 tireId + snapshot 欄位保存下單當下商品資訊。
 @Entity
 @Table(name = "tire_orders")
 @Getter
@@ -37,10 +35,26 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 這段欄位用途：過渡期先沿用對輪胎主檔的關聯（後續 Snapshot 步驟會移除）。
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "tire_id", nullable = false)
-    private Tire tire;
+    // 這段欄位用途：輪胎追溯識別（僅保存輪胎編號，不直接建立 JPA 關聯）。
+    @Column(name = "tire_id", nullable = false)
+    private Long tireId;
+
+    // 這段欄位用途：輪胎快照資訊（保存下單當下商品內容，避免被後續主檔修改污染歷史訂單）。
+    // 備註：快照欄位先允許 null，以兼容舊資料；新訂單流程會寫入完整 snapshot。
+    @Column(name = "tire_snapshot_brand", length = 100)
+    private String tireSnapshotBrand;
+
+    @Column(name = "tire_snapshot_series", length = 100)
+    private String tireSnapshotSeries;
+
+    @Column(name = "tire_snapshot_origin", length = 50)
+    private String tireSnapshotOrigin;
+
+    @Column(name = "tire_snapshot_size", length = 50)
+    private String tireSnapshotSize;
+
+    @Column(name = "tire_snapshot_price")
+    private Integer tireSnapshotPrice;
 
     // 這段欄位用途：訂單購買數量。
     @Column(nullable = false)

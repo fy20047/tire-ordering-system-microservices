@@ -5,7 +5,7 @@ import com.fy20047.tireordering.orderservice.enums.OrderStatus;
 import java.time.LocalDateTime;
 
 // 這個檔案用途：
-// 定義後台單筆訂單回應格式，包含訂單欄位與目前關聯的輪胎欄位（過渡版）。
+// 定義後台單筆訂單回應格式，包含訂單欄位與訂單內保存的輪胎 snapshot 欄位。
 public record AdminOrderResponse(
         // 這段欄位用途：訂單主要資訊。
         Long id,
@@ -20,7 +20,7 @@ public record AdminOrderResponse(
         String notes,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
-        // 這段欄位用途：輪胎欄位（Phase 4 Snapshot 完成後會改為 snapshot 欄位來源）。
+        // 這段欄位用途：輪胎快照欄位（來源是訂單建立當下拷貝值，而非即時輪胎主檔）。
         Long tireId,
         String tireBrand,
         String tireSeries,

@@ -50,7 +50,7 @@ public class AdminOrderController {
         return toResponse(updated);
     }
 
-    // 這段方法用途：將訂單實體轉為後台回應 DTO（目前仍帶輪胎關聯欄位）。
+    // 這段方法用途：將訂單實體轉為後台回應 DTO（改為使用訂單內的 snapshot 欄位）。
     private AdminOrderResponse toResponse(Order order) {
         return new AdminOrderResponse(
                 order.getId(),
@@ -65,12 +65,12 @@ public class AdminOrderController {
                 order.getNotes(),
                 order.getCreatedAt(),
                 order.getUpdatedAt(),
-                order.getTire().getId(),
-                order.getTire().getBrand(),
-                order.getTire().getSeries(),
-                order.getTire().getOrigin(),
-                order.getTire().getSize(),
-                order.getTire().getPrice()
+                order.getTireId(),
+                order.getTireSnapshotBrand(),
+                order.getTireSnapshotSeries(),
+                order.getTireSnapshotOrigin(),
+                order.getTireSnapshotSize(),
+                order.getTireSnapshotPrice()
         );
     }
 }

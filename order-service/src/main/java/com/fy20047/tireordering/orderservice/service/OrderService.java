@@ -11,12 +11,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 // 這個檔案用途：
-// 封裝訂單領域核心流程（建單、查單、狀態更新）與基礎商業規則驗證。
+// 封裝訂單領域核心流程（建單、查單、狀態更新）與基礎商業規則驗證，
+// 並在建單時寫入輪胎 snapshot 以保留歷史正確性。
 @Service
 @Transactional
 public class OrderService {
 
-    // 這段欄位用途：訂單資料儲存與輪胎主檔查詢（過渡期）。
+    // 這段欄位用途：訂單資料儲存與輪胎主檔查詢（Step 7D 先用本地查詢填 snapshot）。
     private final OrderRepository orderRepository;
     private final TireRepository tireRepository;
 
@@ -25,7 +26,7 @@ public class OrderService {
         this.tireRepository = tireRepository;
     }
 
-    // 這段方法用途：建立新訂單，包含輸入驗證與商品可下單檢查。
+    // 這段方法用途：建立新訂單，包含輸入驗證、商品可下單檢查與 snapshot 寫入。
     public Order createOrder(CreateOrderCommand command) {
         validate(command);
 
@@ -35,9 +36,19 @@ public class OrderService {
         if (!tire.isActive()) {
             throw new IllegalStateException("Tire is not available");
         }
+        // 這段檢查用途：避免寫入無效價格到 snapshot。
+        if (tire.getPrice() == null || tire.getPrice() < 0) {
+            throw new IllegalStateException("Tire price is invalid");
+        }
 
+        // 這段建模用途：將輪胎資訊拷貝成 snapshot 欄位，避免後續輪胎主檔變動影響歷史訂單。
         Order order = Order.builder()
-                .tire(tire)
+                .tireId(tire.getId())
+                .tireSnapshotBrand(tire.getBrand())
+                .tireSnapshotSeries(tire.getSeries())
+                .tireSnapshotOrigin(tire.getOrigin())
+                .tireSnapshotSize(tire.getSize())
+                .tireSnapshotPrice(tire.getPrice())
                 .quantity(command.quantity())
                 .customerName(normalize(command.customerName()))
                 .phone(normalize(command.phone()))

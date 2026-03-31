@@ -1463,3 +1463,51 @@
 ### 小總結
 - `order-service` 已具備訂單 API 對外能力（前台建單 + 後台查改單）。
 - 下一步 Step 7D 才會進入 Snapshot 模型改造（屆時會明確標註已進入 Snapshot 階段）。
+
+## 2026-04-01 - Step 7D：Snapshot 模型改造（正式進入 Snapshot）
+
+### 對應清單項目
+- `README.md` §12 Phase 4 細項 4：實作 Snapshot 模型：訂單改存 `tireId + tireSnapshot`，移除對 Tire Entity 直接關聯。
+
+### 本次修改檔案
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/entity/Order.java`（更新）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/service/OrderService.java`（更新）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/controller/AdminOrderController.java`（更新）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/dto/AdminOrderResponse.java`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. `Order` 實體改為 Snapshot 模型
+   - 移除 `@ManyToOne Tire tire` 直接關聯。
+   - 改為保存：
+     - `tireId`（對應 `tire_id`）
+     - `tireSnapshotBrand`（`tire_snapshot_brand`）
+     - `tireSnapshotSeries`（`tire_snapshot_series`）
+     - `tireSnapshotOrigin`（`tire_snapshot_origin`）
+     - `tireSnapshotSize`（`tire_snapshot_size`）
+     - `tireSnapshotPrice`（`tire_snapshot_price`）
+2. 建單流程改為寫入 snapshot
+   - `OrderService#createOrder` 在取得輪胎資料後，不再設定 `order.tire(...)`。
+   - 改為把輪胎資訊拷貝進訂單 snapshot 欄位後再儲存。
+   - 新增價格合法性檢查（價格不可為 null 或負值），避免寫入無效 snapshot。
+3. 後台回應改讀 snapshot
+   - `AdminOrderController#toResponse` 改為使用 `order` 的 snapshot 欄位映射 DTO。
+   - `AdminOrderResponse` 註解同步改為「來源是訂單 snapshot」。
+
+### 註解規範對齊
+- 本步修改過的程式段落均補上中文說明，標示：
+  - Snapshot 欄位目的
+  - 建單寫入 snapshot 的原因
+  - 回應層改讀 snapshot 的意圖
+
+### 分段原因說明
+- 本步先完成「資料模型 + 寫入 + 回應」三個核心點，確保訂單已不依賴 `Order -> Tire` 直接關聯。
+- 呼叫 `tire-service` 驗證商品可下單（Phase 4 細項 5）仍在下一步，避免一次混入跨服務呼叫與部署變更造成驗證範圍過大。
+
+### 驗證結果
+- 已執行編譯打包檢查：
+  - `.\mvnw.cmd -q -DskipTests -f ..\order-service\pom.xml package`（於 `backend` 目錄執行）
+- 結果：成功。
+
+### 小總結
+- Snapshot 模型已在 `order-service` 落地：新訂單會保存下單當下輪胎資訊，後台查單改讀訂單 snapshot，不再依賴 JPA 直接關聯輪胎主檔。
