@@ -864,3 +864,26 @@
   - logout 後 refresh 失敗
   - 無 token / 無 cookie 失敗情境
 - 結論：Phase 2 的 Auth 入口切分 + RS256 驗章鏈路在 minikube 實測可用。
+
+## 2026-03-31 - Step 5D-3：補 Phase 2 最終技術總結（README）
+
+### 對應目標
+- 依使用者要求，在 Phase 2 末段補一段「技術面完成內容」總結，讓交付範圍可快速回顧。
+
+### 相關變更檔案
+- `README.md`
+- `MODIFICATION_HISTORY.md`
+
+### 實作內容
+1. 在 `README.md` 的「Phase 2 完成判準」後新增「Phase 2 技術總結（已完成）」段落。
+2. 摘要整理 6 個技術面向：
+   - 服務切分與 Gateway 分流
+   - RS256 簽章/驗章角色分工
+   - backend Auth 邊界收斂
+   - 部署與密鑰配置同步
+   - compile/test/smoke 驗證覆蓋
+   - 密鑰外洩熱修與風險控制
+
+### 驗證結果
+- 文件結構已更新，Phase 2 區塊可直接看到完成判準與最終技術摘要。
+- 本步僅文件補充，未改動程式邏輯與執行參數。

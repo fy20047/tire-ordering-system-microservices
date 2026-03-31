@@ -567,6 +567,15 @@ Config 與 Secret 原則：
 2. 系統簽章/驗章全面改為 RS256，不再依賴 HS256 shared secret
 3. Phase 2 smoke 全部通過，前端行為與操作路徑維持不變
 
+### Phase 2 技術總結（已完成）
+
+- 服務切分：新增 `auth-service`，承接 `/api/admin/login|refresh|logout`，Gateway 完成路由分流。
+- 安全機制：JWT 由 HS256 升級為 RS256，簽章集中於 `auth-service`（private key），驗章由業務服務使用 public key。
+- 邊界收斂：`backend` 停用重複 Auth 入口，專注 tire/order 業務 API 與 token 驗章授權。
+- 部署同步：`docker-compose`、`k8s`、`.env.example`、`SealedSecret`、`SETUP_GUIDE` 已對齊新拓樸與 key 參數。
+- 驗證補強：完成 compile/test 與 gateway smoke（成功路徑 + 401/403 失敗路徑）驗證。
+- 風險控制：補齊密鑰外洩熱修（歷史重寫、key 輪替、測試改動態產生），避免私鑰再次入版控。
+
 ---
 
 ## 13. 目標目錄結構（最終樣貌）
