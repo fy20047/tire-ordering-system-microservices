@@ -7,6 +7,7 @@ spec:
     spec:
       containers:
         - name: backend
+          imagePullPolicy: IfNotPresent
           resources:
             requests: # 只有當 Node 上還有 0.1顆 CPU 和 256mb RAM 的空位時，Pod 才會被派過去
               cpu: "100m"

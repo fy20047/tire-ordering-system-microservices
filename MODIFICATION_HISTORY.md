@@ -827,3 +827,40 @@
 
 ### 小總結
 - 已完成「移除明文私鑰 + 輪替 JWT key + 重封 SealedSecret + 測試驗證」的一次性熱修；目前 HEAD 不再含 private key 明文。
+## 2026-03-31 - Step 5D-2：K8s 部署驗證與 Phase 2 Smoke 收尾
+
+### 對應目標
+- `README.md` 第 12 節 Phase 2 細項 5：完成 login/refresh/logout + admin API + 失敗情境 smoke。
+- `README.md` 第 12 節 Phase 2 細項 6：完成 minikube 部署面同步與實機驗證。
+
+### 相關變更檔案
+- `k8s/overlays/minikube/backend-resources.yaml`
+- `k8s/overlays/minikube/hpa-backend.yaml`
+- `k8s/overlays/minikube/hpa-frontend.yaml`
+- `MODIFICATION_HISTORY.md`
+
+### 分段原因（5D-2A / 5D-2B）
+1. 先做 5D-2A（部署穩定化）
+   - 既有 cluster 中 `backend` 沿用 `imagePullPolicy=Always`，會反覆拉到舊版 GHCR 映像，導致 RS256 驗章流程無法對齊。
+   - HPA `minReplicas=2` 搭配 ResourceQuota（`limits.cpu=2500m`）時，rollout 期間容易因暫時副本擠壓 quota，造成 `auth-service` 排程失敗。
+2. 再做 5D-2B（smoke 驗證）
+   - 先把部署層風險收斂，再做 API smoke，避免把「資源/排程問題」與「功能問題」混在一起排查。
+
+### 實作內容
+1. `backend-resources.yaml`
+   - 新增 `imagePullPolicy: IfNotPresent`，避免 minikube 本機驗證時被遠端舊映像覆蓋。
+2. `hpa-backend.yaml`、`hpa-frontend.yaml`
+   - 將 `minReplicas` 由 `2` 下修為 `1`，保留自動擴縮能力，同時降低 Auth 拆出後的 quota 壓力。
+3. 本機驗證流程（執行層）
+   - `kubectl apply -k k8s/overlays/minikube`
+   - 使用 minikube docker daemon 建立 `backend:local-rs256`，並以 `kubectl set image` 套用到 `backend` deployment（僅本機驗證用途，未改 repository 內 image tag）。
+   - 以 `scripts/smoke/run-smoke-gateway.ps1` 對 gateway 跑完整 smoke。
+
+### 驗證結果
+- smoke 全數通過：
+  - login / refresh / logout
+  - public tires / create order
+  - admin list orders / patch order status
+  - logout 後 refresh 失敗
+  - 無 token / 無 cookie 失敗情境
+- 結論：Phase 2 的 Auth 入口切分 + RS256 驗章鏈路在 minikube 實測可用。

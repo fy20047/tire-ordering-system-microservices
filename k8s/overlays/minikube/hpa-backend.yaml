@@ -3,19 +3,16 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: backend
 spec:
-  scaleTargetRef: # 指定要伸縮的目標
+  scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: backend # 對應到 Backend Deployment
-  minReplicas: 2 # 下限：不管多閒，至少都要有 2 個 Pod 活著 (保證基本的可用性)
-  maxReplicas: 6 # 上限：不管多忙，最多只開到 6 個 (防止爆炸或資料庫被打掛)
-  metrics: # 伸縮的判斷標準
+    name: backend
+  minReplicas: 1
+  maxReplicas: 6
+  metrics:
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          # 目標平均利用率為 70%
-          # 所以如果現有的 Pod 平均 CPU 用量超過 70% (即 70m/100m)，K8s 就會自動加開新的 Pod 來分擔壓力
-          # 反之如果低於 70% 很久，就會慢慢把 Pod 關掉，直到剩下 3 個
           averageUtilization: 70
