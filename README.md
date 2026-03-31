@@ -576,6 +576,23 @@ Config 與 Secret 原則：
 - 驗證補強：完成 compile/test 與 gateway smoke（成功路徑 + 401/403 失敗路徑）驗證。
 - 風險控制：補齊密鑰外洩熱修（歷史重寫、key 輪替、測試改動態產生），避免私鑰再次入版控。
 
+### Phase 3 細項（抽 Tire Service）
+
+1. 建立 `tire-service` 專案骨架（Spring MVC + JPA + Security 驗章），先確保可獨立 build/run
+2. 搬移 Tire 領域核心：`Tire`、`TireRepository`、`TireService`，維持既有資料表與查詢行為
+3. 搬移公開輪胎 API：`/api/tires`、`/api/tires/{id}`（含 DTO 與例外處理）
+4. 搬移後台輪胎 API：`/api/admin/tires`、`/api/admin/tires/{id}`、`/api/admin/tires/{id}/active`（含 DTO 與驗證）
+5. 調整 Gateway 分流：`/api/tires/**` 與 `/api/admin/tires/**` 導向 `tire-service`，Auth 與其他路由維持現況
+6. 調整 backend 邊界：停用重複 Tire API 入口，保留 order 與其相依資料模型，避免一次牽動 Phase 4
+7. 更新部署與文件：`docker-compose`、`k8s`、`.env.example`、`SETUP_GUIDE`、README 驗證紀錄
+8. 補 Phase 3 smoke：公開查詢、後台 CRUD/上下架、未授權路徑（401/403）、Gateway 路由正確性
+
+### Phase 3 完成判準
+
+1. `Tire` 相關 API 僅由 `tire-service` 對外提供（經由 Gateway）
+2. 查輪胎與後台輪胎管理流程不再依賴 `backend` 的 Tire Controller
+3. Phase 3 smoke 全部通過，前端操作路徑維持不變
+
 ---
 
 ## 13. 目標目錄結構（最終樣貌）

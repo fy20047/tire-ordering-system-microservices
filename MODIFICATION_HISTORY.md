@@ -887,3 +887,38 @@
 ### 驗證結果
 - 文件結構已更新，Phase 2 區塊可直接看到完成判準與最終技術摘要。
 - 本步僅文件補充，未改動程式邏輯與執行參數。
+
+## 2026-03-31 - Step 6A：建立 Phase 3 執行清單（README §12）
+
+### 對應目標
+- 使用者要求：依 `README.md` 的 Phase 3 規劃開始執行，並先把計畫細拆寫入第 12 節執行清單。
+
+### 本次修改檔案
+- `README.md`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 在 `README.md` 第 12 節新增「Phase 3 細項（抽 Tire Service）」8 個可執行步驟：
+   - `tire-service` 骨架建立
+   - Tire 核心領域搬移
+   - 公開 Tire API 搬移
+   - 後台 Tire API 搬移
+   - Gateway 路由分流
+   - backend 重複入口停用
+   - 部署與文件同步
+   - Phase 3 smoke 驗證
+2. 新增「Phase 3 完成判準」3 條：
+   - Tire API 對外單一出口為 `tire-service`（經 Gateway）
+   - 查詢與後台管理不再依賴 backend Tire Controller
+   - Phase 3 smoke 全數通過且前端路徑不變
+
+### 分段原因說明
+- 先補「執行清單」再改程式碼，可讓每個後續 commit 都能對齊明確步驟與驗證點。
+- 這一步只動文件，降低一次改太多檔案的風險，符合逐步推進要求。
+
+### 驗證結果
+- 已檢查 `README.md` 第 12 節，Phase 3 區塊與完成判準皆已落在執行清單中。
+- 本步未修改任何服務邏輯或部署參數。
+
+### 小總結
+- Phase 3 的路線圖已正式落在執行清單，接下來可按步驟進入 `tire-service` 骨架實作。
