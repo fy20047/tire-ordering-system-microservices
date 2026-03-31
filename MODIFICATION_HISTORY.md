@@ -1370,3 +1370,48 @@
 
 ### 小總結
 - `order-service` 已具備可獨立 build 的基礎骨架與 JWT 安全底座，Phase 4 可進入下一步的 Order 領域搬移。
+
+## 2026-04-01 - Step 7B：搬移 Order 領域核心（過渡版）
+
+### 對應清單項目
+- `README.md` §12 Phase 4 細項 2：搬移 Order 領域核心：`Order`、`OrderRepository`、`OrderService` 與必要 DTO/例外處理。
+
+### 本次修改檔案
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/enums/InstallationOption.java`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/enums/OrderStatus.java`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/entity/Tire.java`（新增，過渡用）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/entity/Order.java`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/repository/OrderRepository.java`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/repository/TireRepository.java`（新增，過渡用）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/service/OrderService.java`（新增）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 搬移訂單領域型別與狀態列舉
+   - 新增 `InstallationOption`、`OrderStatus` 到 `order-service`，避免持續依賴 `backend` enum。
+2. 搬移訂單實體與資料存取
+   - 新增 `Order`（對應 `tire_orders`）。
+   - 新增 `OrderRepository`（保留「新到舊」與「依狀態」查詢方法）。
+3. 搬移訂單業務服務
+   - 新增 `OrderService`（建單、查單、改狀態、輸入驗證與資料清洗）。
+   - 保留 `CreateOrderCommand` 作為服務層輸入模型，先不綁 API DTO。
+4. 新增過渡期輪胎相依
+   - 新增 `Tire` entity 與 `TireRepository`，僅為承接目前 `Order -> Tire` 關聯。
+   - 檔案註解已標明此為過渡設計，後續 Step 7D（Snapshot）會移除直接關聯。
+
+### 註解規範對齊
+- 本步所有新增檔案皆補上中文註解：
+  - 檔案最上方用途說明
+  - 每段欄位/方法/規則開頭用途說明
+
+### 分段原因說明
+- 本步只做「領域層搬移」，不混入 Controller/API 路由與 Gateway 分流，讓每次變動維持單一主題。
+- 先用過渡版保持與既有資料表相容，避免在同一步驟同時改「服務拆分 + snapshot 資料模型」造成高風險回歸。
+
+### 驗證結果
+- 已執行編譯打包檢查：
+  - `.\mvnw.cmd -q -DskipTests -f ..\order-service\pom.xml package`（於 `backend` 目錄執行）
+- 結果：成功。
+
+### 小總結
+- `order-service` 已具備可獨立編譯的 Order 領域核心（entity/repository/service），下一步可進入訂單 API 搬移。
