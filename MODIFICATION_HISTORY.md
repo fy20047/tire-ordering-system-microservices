@@ -1415,3 +1415,51 @@
 
 ### 小總結
 - `order-service` 已具備可獨立編譯的 Order 領域核心（entity/repository/service），下一步可進入訂單 API 搬移。
+
+## 2026-04-01 - Step 7C：搬移訂單 API（`/api/orders` + `/api/admin/orders`）
+
+### 對應清單項目
+- `README.md` §12 Phase 4 細項 3：搬移訂單 API：`/api/orders`、`/api/admin/orders`、`/api/admin/orders/{id}/status`。
+
+### 本次修改檔案
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/dto/CreateOrderRequest.java`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/dto/CreateOrderResponse.java`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/dto/AdminOrderResponse.java`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/dto/AdminOrderListResponse.java`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/dto/UpdateOrderStatusRequest.java`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/dto/ErrorResponse.java`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/controller/OrderController.java`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/controller/AdminOrderController.java`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/controller/GlobalExceptionHandler.java`（新增）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 搬移前台建單 API
+   - 新增 `OrderController`：`POST /api/orders`。
+   - 新增 `CreateOrderRequest`、`CreateOrderResponse`，維持既有回應語意（201 + 訂單提示訊息）。
+2. 搬移後台訂單管理 API
+   - 新增 `AdminOrderController`：
+     - `GET /api/admin/orders`
+     - `PATCH /api/admin/orders/{id}/status`
+   - 新增 `AdminOrderResponse`、`AdminOrderListResponse`、`UpdateOrderStatusRequest`。
+3. 搬移全域例外處理
+   - 新增 `GlobalExceptionHandler`，對齊既有錯誤回應格式與狀態碼（400/409/500）。
+   - 新增 `ErrorResponse` 作為統一錯誤 DTO。
+
+### 註解規範對齊
+- 本步所有新增檔案皆補上中文註解：
+  - 檔案最上方用途說明
+  - 主要方法與欄位段落的用途說明
+
+### 分段原因說明
+- 本步僅完成 API 搬移，不動 Gateway 分流與 backend 下線，避免一次跨越「功能搬移 + 路由切換」兩種風險。
+- 本步也尚未進入 Snapshot 改造；維持過渡版 `Order -> Tire` 關聯，確保行為可對照既有流程。
+
+### 驗證結果
+- 已執行編譯打包檢查：
+  - `.\mvnw.cmd -q -DskipTests -f ..\order-service\pom.xml package`（於 `backend` 目錄執行）
+- 結果：成功。
+
+### 小總結
+- `order-service` 已具備訂單 API 對外能力（前台建單 + 後台查改單）。
+- 下一步 Step 7D 才會進入 Snapshot 模型改造（屆時會明確標註已進入 Snapshot 階段）。
