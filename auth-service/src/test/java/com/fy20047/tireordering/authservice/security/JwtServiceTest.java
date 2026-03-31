@@ -13,12 +13,22 @@ import org.junit.jupiter.api.Test;
 // 驗證 JwtService 的核心行為：能簽發可解析 token，且能拒絕非法 token。
 class JwtServiceTest {
 
+    // 這段常數用途：提供 RS256 測試金鑰（與 application-test.yaml 同組），驗證簽章/驗章流程。
+    private static final String TEST_PRIVATE_KEY = """
+            __REMOVED_PRIVATE_KEY__
+            """;
+
+    private static final String TEST_PUBLIC_KEY = """
+            __REMOVED_PUBLIC_KEY__
+            """;
+
     // 這個測試案例用途：
     // 確認 generateToken 後可由 parseToken 讀回 subject 與 role。
     @Test
     void generateToken_shouldIncludeSubjectAndRole() {
         JwtProperties properties = new JwtProperties(
-                "0123456789abcdef0123456789abcdef",
+                TEST_PRIVATE_KEY,
+                TEST_PUBLIC_KEY,
                 3600,
                 1209600,
                 "refreshToken",
@@ -44,7 +54,8 @@ class JwtServiceTest {
     @Test
     void parseToken_whenInvalid_shouldThrow() {
         JwtProperties properties = new JwtProperties(
-                "0123456789abcdef0123456789abcdef",
+                TEST_PRIVATE_KEY,
+                TEST_PUBLIC_KEY,
                 3600,
                 1209600,
                 "refreshToken",

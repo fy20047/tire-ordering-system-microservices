@@ -500,3 +500,43 @@
 
 ### 小總結
 - Auth 核心功能已由測試覆蓋基本成功/失敗路徑，後續切流風險可控。
+
+## 2026-03-31 - Step 5B-1：auth-service 先行切換 RS256
+
+### 對應清單項目
+- `README.md` §12 Phase 2 細項 2：導入 RS256（先在 Auth Service 完成簽章/驗章切換）。
+
+### 本次修改檔案
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/config/JwtProperties.java`（更新）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/security/JwtService.java`（更新）
+- `auth-service/src/main/resources/application.yaml`（更新）
+- `auth-service/src/test/resources/application-test.yaml`（更新）
+- `auth-service/src/test/java/com/fy20047/tireordering/authservice/security/JwtServiceTest.java`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. `JwtProperties` 改為 RS256 欄位
+   - 由 `secret` 改為 `privateKey` + `publicKey`。
+2. `JwtService` 改為 RS256
+   - 簽章改用 `PrivateKey`。
+   - 驗章改用 `PublicKey`。
+   - 新增 PEM 解析流程（去標頭/尾、Base64 decode、RSA KeyFactory）。
+   - PEM 的角色：把 RSA 金鑰物件序列化成可保存/傳遞的文字格式，程式啟動時再把 PEM 字串 parse 回 PrivateKey/PublicKey 物件。
+   - HMAC 可以直接用字串，但 RSA 不行，RSA 必須先有真正金鑰，PEM 只是常見載體。
+3. `application.yaml` 改為 RS256 環境變數
+   - 新增 `security.jwt.private-key: ${JWT_PRIVATE_KEY}`
+   - 新增 `security.jwt.public-key: ${JWT_PUBLIC_KEY}`
+4. 測試設定與測試碼同步切換
+   - `application-test.yaml` 改為測試用 RS256 key pair。
+   - `JwtServiceTest` 改用 RS256 key pair 建立 `JwtProperties`。
+
+### 分段原因說明
+- 先只改 `auth-service` 的 RS256，是為了把「簽章服務改造」與「跨服務路由切換」拆開驗證。
+- 這樣可先確認新 token 產生邏輯與測試都正常，再進一步改 gateway/backend 的驗章與路由。
+- 可降低一次改太多層（Auth + Gateway + Backend）帶來的定位難度。
+
+### 驗證結果
+- 已執行 `.\mvnw.cmd -q -f ..\auth-service\pom.xml test`，測試通過。
+
+### 小總結
+- Auth Service 已從 HS256 切換為 RS256；下一步會把驗章端（gateway/backend）同步調整，完成整體閉環。

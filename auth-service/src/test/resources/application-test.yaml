@@ -13,10 +13,13 @@ spring:
     hibernate:
       ddl-auto: create-drop
 
-# 這段設定用途：提供 JwtProperties 綁定所需欄位，確保安全相關 Bean 可正常初始化。
+# 這段設定用途：提供 RS256 測試金鑰與 JWT 參數，確保安全相關 Bean 可正常初始化。
 security:
   jwt:
-    secret: "0123456789abcdef0123456789abcdefbcdef01234bcdefbcbcdefbc567"
+    private-key: |-
+      __REMOVED_PRIVATE_KEY__
+    public-key: |-
+      __REMOVED_PUBLIC_KEY__
     expiration-seconds: 3600
     refresh-expiration-seconds: 1209600
     refresh-cookie-name: refreshToken

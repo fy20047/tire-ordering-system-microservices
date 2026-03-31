@@ -18,11 +18,12 @@ spring:
       ddl-auto: update
 
 # JWT 設定：
-# Phase 2 初期先沿用既有欄位，後續 Step 5B 再切換到 RS256。
+# Step 5B 起改用 RS256，簽章用 private key、驗章用 public key。
 security:
   jwt:
-    # Access Token 簽章相關參數（目前先保留現況）。
-    secret: ${JWT_SECRET}
+    # Access Token 簽章/驗章參數（PEM 文字；可用環境變數注入）。
+    private-key: ${JWT_PRIVATE_KEY}
+    public-key: ${JWT_PUBLIC_KEY}
     expiration-seconds: ${JWT_EXPIRATION_SECONDS:3600}
 
     # Refresh Token 與 Cookie 行為參數。

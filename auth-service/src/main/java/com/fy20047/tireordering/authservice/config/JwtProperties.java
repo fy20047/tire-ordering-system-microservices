@@ -7,8 +7,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 // 後續切換 RS256 時，會在這裡延伸金鑰相關欄位，避免分散在多個類別。
 @ConfigurationProperties(prefix = "security.jwt")
 public record JwtProperties(
-        // Access Token 參數：目前先沿用既有 secret，後續改 RS256 時會替換簽章方式。
-        String secret,
+        // Access Token 參數：RS256 私鑰（PEM）用於簽章。
+        String privateKey,
+        // Access Token 參數：RS256 公鑰（PEM）用於驗章。
+        String publicKey,
         long expirationSeconds,
         // Refresh Token 與 Cookie 行為參數。
         long refreshExpirationSeconds,
