@@ -422,3 +422,44 @@
 
 ### 小總結
 - 本步先把 Auth 共用底座建好，下一步會接上 `login/refresh/logout` 的 service/controller 邏輯。
+
+## 2026-03-31 - Step 5A-2B：實作 auth-service 的 login/refresh/logout 邏輯
+
+### 對應清單項目
+- `README.md` §12 Phase 2 細項 1：搬移登入/刷新/登出與 refresh token 核心流程到 `auth-service`。
+
+### 本次修改檔案
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/controller/AdminAuthController.java`（新增）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/service/AdminService.java`（新增）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/security/JwtService.java`（新增）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/security/RefreshTokenService.java`（新增）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/config/SecurityConfig.java`（新增）
+- `auth-service/src/main/java/com/fy20047/tireordering/authservice/config/AdminSeedRunner.java`（新增）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 新增 `AdminAuthController`
+   - 實作 `/api/admin/login`：帳密驗證成功後回傳 access token，並寫入 refresh cookie。
+   - 實作 `/api/admin/refresh`：以 refresh cookie 驗證後，旋轉 refresh token 並回傳新 access token。
+   - 實作 `/api/admin/logout`：撤銷 refresh token 並清除 cookie。
+2. 新增 `AdminService`
+   - 封裝登入流程（查 admin、比對密碼、簽發 access/refresh token）。
+3. 新增 `JwtService`
+   - 提供 access token 簽發與解析能力（目前先沿用 HS256，RS256 在後續 Step 5B）。
+4. 新增 `RefreshTokenService`
+   - 提供 refresh token 建立/驗證/撤銷（資料庫僅保存 token hash）。
+5. 新增 `SecurityConfig`
+   - 放行 Auth API 與健康檢查端點，並提供 `PasswordEncoder`。
+6. 新增 `AdminSeedRunner`
+   - 服務啟動時可依 `ADMIN_USERNAME/ADMIN_PASSWORD` 自動補初始管理員。
+
+### 分段原因說明（延續）
+- 本步只完成 `auth-service` 內部 Auth 行為落地，尚未切換 gateway 路由。
+- 這樣可以先驗證「新服務本身可編譯、可運行」，再進行跨服務流量切換，降低定位難度。
+- 下一步會先補測試（Step 5A-3），再做路由切換與 backend 收斂。
+
+### 驗證結果
+- 本步新增邏輯後，已完成編譯驗證（見下方命令）。
+
+### 小總結
+- `auth-service` 已具備完整 `login/refresh/logout` 能力，現階段仍與既有流量隔離，便於下一步穩定切換。
