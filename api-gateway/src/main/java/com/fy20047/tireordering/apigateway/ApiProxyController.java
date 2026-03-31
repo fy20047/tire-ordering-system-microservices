@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 // 這個 Controller 是 Phase 1 的 API 入口代理：
 // 1) 接收所有 /api/** 請求
-// 2) 轉發到舊 backend
+// 2) 依路徑轉發到對應服務（Auth API -> auth-service，其餘 -> backend）
 // 3) 盡量維持原本狀態碼/headers/body，讓前端無感
 @RestController
 @RequestMapping("/api")
@@ -46,12 +46,18 @@ public class ApiProxyController {
     // Java 內建 HttpClient，用來把請求送到舊 backend。
     private final HttpClient httpClient;
 
-    // 舊 backend 的 base URL，可由環境變數覆蓋。
+    // backend 的 base URL（非 Auth API 走這條）。
     private final String backendBaseUrl;
+    // auth-service 的 base URL（login/refresh/logout 走這條）。
+    private final String authBaseUrl;
 
     // 建構子注入設定值並初始化 HttpClient。
-    public ApiProxyController(@Value("${gateway.backend-base-url:http://backend:8080}") String backendBaseUrl) {
+    public ApiProxyController(
+            @Value("${gateway.backend-base-url:http://backend:8080}") String backendBaseUrl,
+            @Value("${gateway.auth-base-url:http://auth-service:8080}") String authBaseUrl
+    ) {
         this.backendBaseUrl = normalizeBaseUrl(backendBaseUrl);
+        this.authBaseUrl = normalizeBaseUrl(authBaseUrl);
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
@@ -106,14 +112,36 @@ public class ApiProxyController {
         return HttpRequest.BodyPublishers.ofByteArray(body);
     }
 
-    // 組出目標 URI：backendBaseUrl + 原始 URI path + query。
+    // 組出目標 URI：依路徑決定 base URL，再拼上原始 URI path + query。
     private URI buildTargetUri(HttpServletRequest request) {
-        StringBuilder uriBuilder = new StringBuilder(backendBaseUrl)
+        String targetBaseUrl = resolveTargetBaseUrl(request.getRequestURI());
+        StringBuilder uriBuilder = new StringBuilder(targetBaseUrl)
                 .append(request.getRequestURI());
         if (request.getQueryString() != null && !request.getQueryString().isBlank()) {
             uriBuilder.append("?").append(request.getQueryString());
         }
         return URI.create(uriBuilder.toString());
+    }
+
+    // 依 API 路徑決定要轉發到哪個服務：
+    // - /api/admin/login|refresh|logout -> auth-service
+    // - 其餘 -> backend
+    private String resolveTargetBaseUrl(String requestUri) {
+        if (isAuthEntryPath(requestUri)) {
+            return authBaseUrl;
+        }
+        return backendBaseUrl;
+    }
+
+    // 僅匹配 Auth 對外入口，避免把 admin 業務 API（如 /api/admin/orders）誤導到 auth-service。
+    private boolean isAuthEntryPath(String requestUri) {
+        String normalizedPath = requestUri;
+        if (normalizedPath.endsWith("/") && normalizedPath.length() > 1) {
+            normalizedPath = normalizedPath.substring(0, normalizedPath.length() - 1);
+        }
+        return normalizedPath.equals("/api/admin/login")
+                || normalizedPath.equals("/api/admin/refresh")
+                || normalizedPath.equals("/api/admin/logout");
     }
 
     // 複製 inbound headers 到 outbound，排除不應直接轉發的 header。

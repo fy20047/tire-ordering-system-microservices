@@ -19,3 +19,7 @@ security:
     refresh-cookie-name: ${JWT_REFRESH_COOKIE_NAME:refreshToken}
     refresh-cookie-secure: ${JWT_REFRESH_COOKIE_SECURE:false}
     refresh-cookie-same-site: ${JWT_REFRESH_COOKIE_SAME_SITE:Lax}
+
+# 預設停用 backend 自帶 Auth 入口，避免與 auth-service 重複對外提供 login/refresh/logout。
+feature:
+  backend-auth-endpoints-enabled: ${BACKEND_AUTH_ENDPOINTS_ENABLED:false}

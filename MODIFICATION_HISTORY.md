@@ -578,3 +578,42 @@
 
 ### 小總結
 - 驗章端已完成 RS256 同步，接下來可安全進行 gateway 路由切換與 backend Auth 入口收斂。
+
+## 2026-03-31 - Step 5C：切換 Gateway Auth 路由並收斂 backend Auth 入口
+
+### 對應清單項目
+- `README.md` §12 Phase 2 細項 3：`/api/admin/login|refresh|logout` 導向 `auth-service`。
+- `README.md` §12 Phase 2 細項 4：backend 停用重複 Auth 入口。
+
+### 本次修改檔案
+- `api-gateway/src/main/java/com/fy20047/tireordering/apigateway/ApiProxyController.java`（更新）
+- `api-gateway/src/main/resources/application.yaml`（更新）
+- `backend/src/main/java/com/fy20047/tireordering/backend/controller/AdminAuthController.java`（更新）
+- `backend/src/main/resources/application.yaml`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. Gateway 新增分流策略（path-based routing）
+   - `/api/admin/login`、`/api/admin/refresh`、`/api/admin/logout` 轉發到 `auth-service`。
+   - 其餘 `/api/**` 維持轉發到 `backend`。
+2. Gateway 新增設定值
+   - `gateway.auth-base-url`（預設 `http://auth-service:8080`）。
+   - 保留既有 `gateway.backend-base-url` 與 `gateway.frontend-login-url`。
+3. backend 舊 Auth 入口預設停用
+   - `AdminAuthController` 加上 `@ConditionalOnProperty(feature.backend-auth-endpoints-enabled=true)`。
+   - `backend application.yaml` 新增 `feature.backend-auth-endpoints-enabled`，預設 `false`。
+
+### 分段原因說明（延續）
+- 本步先完成「流量路由」與「重複入口停用」兩件最直接影響邊界的改造。
+- `docker-compose/k8s/.env` 的同步屬於部署層，放在 Step 5D 一次收斂，避免本步混入過多部署檔。
+- 這可保持每一步都可被獨立驗證：本步只驗證程式路由與入口邏輯正確。
+
+### 驗證結果
+- 已執行 Gateway 編譯：
+  - `.\mvnw.cmd -q -f ..\api-gateway\pom.xml -DskipTests package`
+- 已執行 backend 全量測試：
+  - `.\mvnw.cmd -q test`
+- 以上皆通過。
+
+### 小總結
+- 對外 Auth 入口已由 Gateway 導向 `auth-service`，backend 重複 Auth 入口預設停用，服務邊界已落地。

@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Cookie;
 import java.util.Arrays;
 import jakarta.validation.Valid;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,6 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 // 寫登入流程（產 token）- 3. /api/admin/login 登入 API
 @RestController
 @RequestMapping("/api/admin")
+@ConditionalOnProperty(
+        name = "feature.backend-auth-endpoints-enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 public class AdminAuthController {
 
     private final AdminService adminService;
