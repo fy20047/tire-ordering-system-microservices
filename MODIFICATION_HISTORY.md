@@ -1175,3 +1175,77 @@
 
 ### 小總結
 - backend 的重複 Tire API 入口已可預設關閉，服務邊界開始收斂到 `tire-service`；下一步可同步部署層設定與 smoke 驗證。
+
+## 2026-03-31 - Step 6H：同步部署層（compose/k8s/env）並完成 Phase 3 Smoke 驗證
+
+### 對應清單項目
+- `README.md` §12 Phase 3 細項 7：更新部署與文件（`docker-compose`、`k8s`、`.env.example`）。
+- `README.md` §12 Phase 3 細項 8：補 Phase 3 smoke（公開查詢、後台 CRUD/上下架、授權失敗路徑、Gateway 路由正確性）。
+
+### 本次修改檔案
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/TireServiceApplication.java`（更新）
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/config/JwtProperties.java`（新增）
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/config/SecurityConfig.java`（新增）
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/security/JwtService.java`（新增）
+- `tire-service/src/main/java/com/fy20047/tireordering/tireservice/security/JwtAuthenticationFilter.java`（新增）
+- `infra/docker-compose.yml`（更新）
+- `infra/docker-compose.prod.yml`（更新）
+- `infra/.env.example`（更新）
+- `infra/.env`（本機檔，更新，不入版控）
+- `k8s/base/tire-deployment.yaml`（新增）
+- `k8s/base/tire-service.yaml`（新增）
+- `k8s/base/kustomization.yaml`（更新）
+- `k8s/base/gateway-deployment.yaml`（更新）
+- `k8s/overlays/minikube/tire-configmap-env.yaml`（新增）
+- `k8s/overlays/minikube/app-config.yaml`（更新）
+- `k8s/overlays/minikube/backend-configmap-env.yaml`（更新）
+- `k8s/overlays/minikube/kustomization.yaml`（更新）
+- `scripts/smoke/run-smoke-gateway.ps1`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 補齊 `tire-service` 安全層（作為分流後可用前置）
+   - 新增 JWT 設定綁定、JWT 驗章服務與 JWT 過濾器。
+   - 新增 `SecurityConfig`：
+     - 放行 `/api/tires/**` 與健康檢查端點。
+     - 限制 `/api/admin/**` 需 `ROLE_ADMIN`。
+   - 在啟動類別啟用 `@EnableConfigurationProperties(JwtProperties.class)`。
+2. 同步 Docker Compose（dev/prod）
+   - 新增 `tire-service` 服務與必要環境變數。
+   - Gateway 新增 `TIRE_BASE_URL=http://tire-service:8080`。
+   - backend 新增 `BACKEND_TIRE_ENDPOINTS_ENABLED`（預設 `false`）。
+   - `infra/.env.example` 與本機 `infra/.env` 同步新增 `BACKEND_TIRE_ENDPOINTS_ENABLED=false`。
+3. 同步 Kubernetes（base + minikube overlay）
+   - base 新增 `tire-service` Deployment/Service。
+   - Gateway Deployment 新增 `TIRE_BASE_URL`。
+   - overlay 新增 `tire-configmap-env.yaml`，以 `app-config` 注入 tire-service 非機密參數。
+   - `app-config.yaml` 新增 `BACKEND_TIRE_ENDPOINTS_ENABLED`，並在 `backend-configmap-env.yaml` 注入對應 env。
+   - `kustomization.yaml` 新增 `tire-service` image 與 patch。
+4. 更新 Phase 3 Smoke 腳本
+   - 在既有 smoke 基礎上新增 `tire-service` 路徑驗證：
+     - `GET /api/admin/tires`（帶 token 成功）
+     - `GET /api/admin/tires`（無 token 403）
+     - `POST /api/admin/tires` 新增輪胎
+     - `PUT /api/admin/tires/{id}` 更新輪胎
+     - `PATCH /api/admin/tires/{id}/active` 上下架切換
+   - 保留既有 login/refresh/logout、公開輪胎查詢、建單、後台訂單流程驗證。
+
+### 註解規範對齊
+- 本步新增程式檔案均補齊中文註解：
+  - 檔案用途說明
+  - 各段方法/規則用途說明
+- `k8s` 新增資源檔亦補上中文用途註解。
+
+### 驗證結果
+- 部署設定語法驗證：
+  - `docker compose -f infra/docker-compose.yml --env-file infra/.env.example config`
+  - `docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.example config`
+  - `kubectl kustomize k8s/base`
+  - `kubectl kustomize k8s/overlays/minikube`
+- 本機實跑驗證：
+  - `docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --build`
+  - `powershell -ExecutionPolicy Bypass -File .\scripts\smoke\run-smoke-gateway.ps1 -BaseUrl "http://localhost:8080" -AdminUsername "<local>" -AdminPassword "<local>"`
+- 結果：Smoke 全部通過（包含新增的 Tire 管理路徑案例）。
+
+### 小總結
+- Phase 3 的「程式分流 + 部署配置 + 端到端 smoke」已完成一輪閉環驗證，Gateway 轉發到 `tire-service` 的公開與後台輪胎路徑可正常運作。

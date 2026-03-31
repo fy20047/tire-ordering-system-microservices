@@ -27,11 +27,14 @@ images:
   newTag: 3475216ddf09cf67a1e6f64a31a34ef5d6990a19
 - name: ghcr.io/fy20047/tire-ordering-system/frontend
   newTag: 3475216ddf09cf67a1e6f64a31a34ef5d6990a19
+- name: ghcr.io/fy20047/tire-ordering-system/tire-service
+  newTag: 3475216ddf09cf67a1e6f64a31a34ef5d6990a19
 patches:
 - path: frontend-nodeport.yaml
 - path: backend-scale.yaml
 - path: frontend-scale.yaml
 - path: backend-configmap-env.yaml
 - path: auth-configmap-env.yaml
+- path: tire-configmap-env.yaml
 - path: backend-resources.yaml
 - path: frontend-resources.yaml

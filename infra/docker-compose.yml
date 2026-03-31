@@ -27,7 +27,7 @@ services:
     depends_on:
       - mariadb
 
-  # 舊 monolith backend：Phase 2 起保留 tire/order 業務，Auth 入口預設停用
+  # 舊 monolith backend：Phase 3 起以 order 為主，Auth/Tire 入口預設停用
   backend:
     build:
       context: ../backend
@@ -48,6 +48,7 @@ services:
       JWT_REFRESH_COOKIE_SECURE: ${JWT_REFRESH_COOKIE_SECURE:-false}
       JWT_REFRESH_COOKIE_SAME_SITE: ${JWT_REFRESH_COOKIE_SAME_SITE:-Lax}
       BACKEND_AUTH_ENDPOINTS_ENABLED: ${BACKEND_AUTH_ENDPOINTS_ENABLED:-false}
+      BACKEND_TIRE_ENDPOINTS_ENABLED: ${BACKEND_TIRE_ENDPOINTS_ENABLED:-false}
       ADMIN_USERNAME: ${ADMIN_USERNAME}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
     depends_on:
@@ -80,7 +81,27 @@ services:
       mariadb:
         condition: service_healthy
 
-  # API Gateway：Phase 2 仍是唯一 API 入口，Auth API 轉發到 auth-service，其餘轉 backend
+  # Tire Service：Phase 3 起承接公開與後台輪胎管理 API
+  tire-service:
+    build:
+      context: ../tire-service
+      dockerfile: Dockerfile
+    image: tire-ordering-tire-service:local
+    container_name: tire_tire_service
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-3600}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  # API Gateway：統一 API 入口，Auth/Tire API 各自分流到對應服務
   api-gateway:
     build:
       context: ../api-gateway
@@ -90,11 +111,13 @@ services:
     environment:
       BACKEND_BASE_URL: http://backend:8080
       AUTH_BASE_URL: http://auth-service:8080
+      TIRE_BASE_URL: http://tire-service:8080
     ports:
       - "8080:8080"
     depends_on:
       - backend
       - auth-service
+      - tire-service
 
   # Frontend：只對外提供 UI，/api 請求改由 nginx 轉給 api-gateway
   frontend:

@@ -45,6 +45,7 @@ services:
       JWT_REFRESH_COOKIE_SECURE: ${JWT_REFRESH_COOKIE_SECURE:-false}
       JWT_REFRESH_COOKIE_SAME_SITE: ${JWT_REFRESH_COOKIE_SAME_SITE:-Lax}
       BACKEND_AUTH_ENDPOINTS_ENABLED: ${BACKEND_AUTH_ENDPOINTS_ENABLED:-false}
+      BACKEND_TIRE_ENDPOINTS_ENABLED: ${BACKEND_TIRE_ENDPOINTS_ENABLED:-false}
       ADMIN_USERNAME: ${ADMIN_USERNAME}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
     depends_on:
@@ -74,6 +75,23 @@ services:
       mariadb:
         condition: service_healthy
 
+  tire-service:
+    image: ghcr.io/fy20047/tire-ordering-system/tire-service:latest
+    container_name: tire_tire_service
+    restart: always
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-3600}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
   api-gateway:
     image: ghcr.io/fy20047/tire-ordering-system/api-gateway:latest
     container_name: tire_api_gateway
@@ -81,11 +99,13 @@ services:
     environment:
       BACKEND_BASE_URL: http://backend:8080
       AUTH_BASE_URL: http://auth-service:8080
+      TIRE_BASE_URL: http://tire-service:8080
     ports:
       - "8080:8080"
     depends_on:
       - backend
       - auth-service
+      - tire-service
 
   frontend:
     image: ghcr.io/fy20047/tire-ordering-system/frontend:latest

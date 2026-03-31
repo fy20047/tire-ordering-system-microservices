@@ -7,6 +7,8 @@ resources:
   - backend-deployment.yaml
   - auth-service.yaml
   - auth-deployment.yaml
+  - tire-service.yaml
+  - tire-deployment.yaml
   - gateway-service.yaml
   - gateway-deployment.yaml
   - frontend-service.yaml
