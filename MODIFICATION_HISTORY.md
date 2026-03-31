@@ -1321,3 +1321,52 @@
 
 ### 小總結
 - Snapshot 的設計原則與實作路徑已文件化，Phase 4 可依此直接落地開發與驗證。
+
+## 2026-04-01 - Step 7A：建立 order-service 專案骨架（Phase 4 起手式）
+
+### 對應清單項目
+- `README.md` §12 Phase 4 細項 1：建立 `order-service` 專案骨架（Spring MVC + JPA + Security 驗章），先確保可獨立 build/run。
+
+### 本次修改檔案
+- `order-service/pom.xml`（新增）
+- `order-service/Dockerfile`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/OrderServiceApplication.java`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/config/JwtProperties.java`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/config/SecurityConfig.java`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/security/JwtService.java`（新增）
+- `order-service/src/main/java/com/fy20047/tireordering/orderservice/security/JwtAuthenticationFilter.java`（新增）
+- `order-service/src/main/resources/application.yaml`（新增）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 建立 `order-service` Maven 專案骨架
+   - 新增 `pom.xml`，依賴包含 `web`、`data-jpa`、`validation`、`security`、`actuator`、`jjwt`、`mariadb`、`test`。
+   - Java 版本與現有服務對齊為 `21`，維持一致建置基線。
+2. 建立 Spring Boot 啟動與設定檔
+   - 新增 `OrderServiceApplication` 作為啟動入口，並啟用 `JwtProperties`。
+   - 新增 `application.yaml`，先放服務名稱、資料庫、JPA、JWT 與 actuator 基礎設定。
+3. 建立 JWT 驗章安全骨架
+   - 新增 `JwtProperties`（綁定 `security.jwt`）。
+   - 新增 `JwtService`（RS256 public key 驗章解析）。
+   - 新增 `JwtAuthenticationFilter`（解析 Bearer token 並建立 SecurityContext）。
+   - 新增 `SecurityConfig`（先定義 `/api/orders/**` 放行、`/api/admin/**` 需 `ROLE_ADMIN`）。
+4. 建立 `order-service` Dockerfile
+   - 採兩階段建置（build/runtime），與既有服務一致，便於後續納入 compose/k8s。
+
+### 註解規範對齊
+- 本步所有新增檔案皆補上中文註解：
+  - 檔案最上方用途說明
+  - 各段程式/設定區塊的用途說明
+  - Dockerfile 各階段與關鍵指令目的說明
+
+### 分段原因說明
+- 先只完成「可獨立建置執行的 order-service 空骨架」，不混入 DTO/Entity/API 搬移，避免一次改動面過大難以回歸。
+- 後續 Step 7B 再開始搬移 Order 領域核心（`Order`、`OrderRepository`、`OrderService`）與必要 DTO/例外，保持步驟可驗證、可回滾。
+
+### 驗證結果
+- 已執行編譯打包檢查：
+  - `.\mvnw.cmd -q -DskipTests -f ..\order-service\pom.xml package`（於 `backend` 目錄執行）
+- 結果：成功。
+
+### 小總結
+- `order-service` 已具備可獨立 build 的基礎骨架與 JWT 安全底座，Phase 4 可進入下一步的 Order 領域搬移。
