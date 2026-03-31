@@ -1,0 +1,24 @@
+# 這份測試設定檔用途：
+# 提供 auth-service 測試執行時的隔離環境（H2 + 測試用 JWT 設定），避免依賴外部 MariaDB。
+spring:
+  # 這段設定用途：使用記憶體 H2 取代正式資料庫，提升測試穩定與速度。
+  datasource:
+    url: "jdbc:h2:mem:auth_service_test;MODE=MariaDB;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  # 這段設定用途：測試期間由 Hibernate 自動建表與清理。
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+# 這段設定用途：提供 JwtProperties 綁定所需欄位，確保安全相關 Bean 可正常初始化。
+security:
+  jwt:
+    secret: "0123456789abcdef0123456789abcdefbcdef01234bcdefbcbcdefbc567"
+    expiration-seconds: 3600
+    refresh-expiration-seconds: 1209600
+    refresh-cookie-name: refreshToken
+    refresh-cookie-secure: false
+    refresh-cookie-same-site: Lax

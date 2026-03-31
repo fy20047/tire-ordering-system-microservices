@@ -463,3 +463,40 @@
 
 ### 小總結
 - `auth-service` 已具備完整 `login/refresh/logout` 能力，現階段仍與既有流量隔離，便於下一步穩定切換。
+
+## 2026-03-31 - Step 5A-3：補 auth-service 基本測試並驗證
+
+### 對應清單項目
+- `README.md` §12 Phase 2 細項 5（先建立最小回歸能力）：在切路由前先確認 Auth 核心邏輯可測且可執行。
+
+### 本次修改檔案
+- `auth-service/src/test/java/com/fy20047/tireordering/authservice/AuthServiceApplicationTests.java`（新增）
+- `auth-service/src/test/java/com/fy20047/tireordering/authservice/security/JwtServiceTest.java`（新增）
+- `auth-service/src/test/java/com/fy20047/tireordering/authservice/service/AdminServiceTest.java`（新增）
+- `auth-service/src/test/resources/application-test.yaml`（新增）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 新增 `AuthServiceApplicationTests`
+   - 驗證 `auth-service` 在 `test` profile 下可啟動 Spring Context。
+2. 新增 `JwtServiceTest`
+   - 驗證可簽發並解析合法 token（subject/role）。
+   - 驗證非法 token 會拋出例外。
+3. 新增 `AdminServiceTest`
+   - 驗證帳號不存在不發 token。
+   - 驗證密碼錯誤不發 token。
+   - 驗證登入成功時同時回傳 access/refresh token。
+4. 新增 `application-test.yaml`
+   - 使用 H2 記憶體資料庫隔離測試環境。
+   - 提供 `security.jwt.*` 測試值，確保安全相關 Bean 可正常初始化。
+
+### 分段原因說明（延續）
+- 在 `Step 5A-2B` 完成 Auth 行為後，先補最小測試再切 gateway 路由，可先排除服務內部問題。
+- 這可避免路由切換後才發現單元邏輯或設定錯誤，降低跨服務除錯成本。
+
+### 驗證結果
+- 已執行 `.\mvnw.cmd -q -f ..\auth-service\pom.xml test`，測試通過。
+- 本步完成後，`auth-service` 已具備「可編譯 + 可測試」基礎，下一步可進入路由切換準備。
+
+### 小總結
+- Auth 核心功能已由測試覆蓋基本成功/失敗路徑，後續切流風險可控。
