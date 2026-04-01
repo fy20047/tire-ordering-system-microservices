@@ -1804,3 +1804,35 @@
 
 ### 小總結
 - Phase 4 smoke 腳本已補齊 snapshot 穩定性與建單失敗案例；待本機服務啟動後可直接做端到端驗收。
+
+## 2026-04-02 - Step 7J：實際執行 Phase 4 Smoke 並補文件指令
+
+### 對應清單項目
+- `README.md` §12 Phase 4 細項 9：smoke 實際執行與驗證結果落地。
+
+### 本次修改檔案
+- `SETUP_GUIDE.md`（更新）
+- `README.md`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. `SETUP_GUIDE.md` 補上可直接重跑的 smoke 操作指令
+   - 在 Smoke 區塊新增：
+     - 先用 `infra/.env` 啟動 compose
+     - 先做 `/api/health` 檢查
+     - 再執行 smoke 腳本
+   - 新增「2026-04-02 實際驗證指令」範例。
+2. `README.md` 更新 Phase 4 狀態
+   - `Phase 4 技術總結` 從「進行中，已完成 1~8」改為「已完成 1~9」。
+   - 將原本「第 9 項 smoke 待完成」改為「已完成實跑」。
+
+### 驗證結果（實際執行）
+- 先啟動 Docker Compose：
+  - `docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --build`
+- 再執行 smoke：
+  - `powershell -ExecutionPolicy Bypass -File .\scripts\smoke\run-smoke-gateway.ps1 -BaseUrl "http://localhost:8080" -AdminUsername "admin" -AdminPassword "<infra/.env 的 ADMIN_PASSWORD>"`
+- 結果：
+  - smoke 全部通過（含 snapshot A/B 驗證、400/409、401/403）。
+
+### 小總結
+- 文件已補齊可直接執行的 smoke 指令，且 Phase 4 狀態已更新為「1~9 全完成」。

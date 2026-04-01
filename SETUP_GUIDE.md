@@ -65,7 +65,18 @@ docker compose -f infra/docker-compose.prod.yml down
 docker login ghcr.io
 ```
 
-## Smoke 驗證（Phase 4 目前）
+## Smoke 驗證（Phase 4）
+建議先確認服務已用「可用的 `.env`」啟動（不是直接用 `.env.example`）：
+```powershell
+docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --build
+```
+
+可先做入口健康檢查：
+```powershell
+Invoke-WebRequest -Uri "http://localhost:8080/api/health"
+```
+
+再執行 smoke：
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke\run-smoke-gateway.ps1 `
   -BaseUrl "http://localhost:8080" `
@@ -73,6 +84,13 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke\run-smoke-gateway.ps1 `
   -AdminPassword "<your_admin_password>"
 ```
 目前可驗證：公開輪胎查詢、後台輪胎 CRUD/上下架、授權失敗路徑、登入刷新登出、訂單核心流程。
+
+### 實際驗證指令（2026-04-02）
+```powershell
+docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --build
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke\run-smoke-gateway.ps1 -BaseUrl "http://localhost:8080" -AdminUsername "admin" -AdminPassword "<infra/.env 的 ADMIN_PASSWORD>"
+```
+實測結果：全數通過（含 Phase 4 snapshot 驗證）。
 
 Phase 4 完整驗證重點（Step 7I）：建單成功/失敗、後台查改單、snapshot 不受後續輪胎主檔修改影響（舊單保留舊值，新單採新值）。
 

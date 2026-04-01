@@ -642,14 +642,14 @@ Config 與 Secret 原則：
   - 建單後修改輪胎主檔價格/名稱，舊訂單顯示仍為舊 snapshot 值。
   - 新訂單則採用修改後的新值（表示 snapshot 是「建單時刻」快照）。
 
-### Phase 4 技術總結（進行中，已完成 1~8）
+### Phase 4 技術總結（已完成 1~9）
 
 - 服務切分：`order-service` 已承接 `/api/orders/**` 與 `/api/admin/orders/**`，Gateway 完成訂單路由分流。
 - 資料模型：`Order` 改為 `tireId + snapshot`，移除 `Order -> Tire` JPA 直接關聯。
 - 建單流程：`order-service` 改為呼叫 `tire-service` 驗證商品可下單，並把商品資料寫入 snapshot。
 - 邊界收斂：`backend` 的重複 Order 入口改為 feature flag 控制（預設關閉）。
 - 部署同步：`docker-compose`、`k8s base/overlay`、`.env.example` 已加入 `order-service`、`ORDER_BASE_URL`、`BACKEND_ORDER_ENDPOINTS_ENABLED`。
-- 待完成項目：Phase 4 第 9 項 smoke（snapshot 回歸驗證）尚待執行與記錄。
+- 驗證補強：Phase 4 第 9 項 smoke 已完成實跑，覆蓋建單成功/失敗、後台查改單、snapshot A/B 回歸驗證與 401/403 授權路徑。
 
 ### Phase 4 目前拓樸（實際狀態）
 
