@@ -11,17 +11,19 @@ import java.util.Enumeration;
 import java.util.Locale;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
-// 這個 Controller 是 Phase 1 的 API 入口代理：
+// 這個 Controller 是 API 入口代理：
 // 1) 接收所有 /api/** 請求
 // 2) 依路徑轉發到對應服務（Auth -> auth-service、Tire -> tire-service、Order -> order-service）
-// 3) 盡量維持原本狀態碼/headers/body，讓前端無感
+// 3) 未匹配路徑直接回 404，不再 fallback 到 monolith backend
 @RestController
 @RequestMapping("/api")
 public class ApiProxyController {
@@ -43,11 +45,9 @@ public class ApiProxyController {
             HttpHeaders.TRANSFER_ENCODING.toLowerCase(Locale.ROOT)
     );
 
-    // Java 內建 HttpClient，用來把請求送到舊 backend。
+    // Java 內建 HttpClient，用來把請求送到下游微服務。
     private final HttpClient httpClient;
 
-    // backend 的 base URL（非 Auth API 走這條）。
-    private final String backendBaseUrl;
     // auth-service 的 base URL（login/refresh/logout 走這條）。
     private final String authBaseUrl;
     // tire-service 的 base URL（輪胎查詢與後台輪胎管理走這條）。
@@ -57,12 +57,10 @@ public class ApiProxyController {
 
     // 建構子注入設定值並初始化 HttpClient。
     public ApiProxyController(
-            @Value("${gateway.backend-base-url:http://backend:8080}") String backendBaseUrl,
             @Value("${gateway.auth-base-url:http://auth-service:8080}") String authBaseUrl,
             @Value("${gateway.tire-base-url:http://tire-service:8080}") String tireBaseUrl,
             @Value("${gateway.order-base-url:http://order-service:8080}") String orderBaseUrl
     ) {
-        this.backendBaseUrl = normalizeBaseUrl(backendBaseUrl);
         this.authBaseUrl = normalizeBaseUrl(authBaseUrl);
         this.tireBaseUrl = normalizeBaseUrl(tireBaseUrl);
         this.orderBaseUrl = normalizeBaseUrl(orderBaseUrl);
@@ -71,7 +69,7 @@ public class ApiProxyController {
                 .build();
     }
 
-    // 接收 /api/** 的所有 HTTP 方法，原樣代理到舊 backend。
+    // 接收 /api/** 的所有 HTTP 方法，依路徑代理到對應微服務。
     @RequestMapping("/**")
     public ResponseEntity<byte[]> proxy(
             HttpServletRequest request,
@@ -88,24 +86,24 @@ public class ApiProxyController {
         // 複製可轉發的 request headers。
         copyRequestHeaders(request, outboundBuilder);
 
-        // 送出請求到舊 backend，取得原始回應。
-        HttpResponse<byte[]> backendResponse = httpClient.send(
+        // 送出請求到下游微服務，取得原始回應。
+        HttpResponse<byte[]> downstreamResponse = httpClient.send(
                 outboundBuilder.build(),
                 HttpResponse.BodyHandlers.ofByteArray()
         );
 
-        // 將 backend 回應 headers 複製回前端。
+        // 將下游回應 headers 複製回前端。
         HttpHeaders responseHeaders = new HttpHeaders();
-        backendResponse.headers().map().forEach((name, values) -> {
+        downstreamResponse.headers().map().forEach((name, values) -> {
             if (!EXCLUDED_RESPONSE_HEADERS.contains(name.toLowerCase(Locale.ROOT))) {
                 responseHeaders.put(name, values);
             }
         });
 
-        // 回傳與 backend 一致的狀態碼 + body + headers。
-        return ResponseEntity.status(backendResponse.statusCode())
+        // 回傳與下游一致的狀態碼 + body + headers。
+        return ResponseEntity.status(downstreamResponse.statusCode())
                 .headers(responseHeaders)
-                .body(backendResponse.body());
+                .body(downstreamResponse.body());
     }
 
     // 判斷是否需要 request body；GET/HEAD/OPTIONS 預設不送 body。
@@ -135,7 +133,7 @@ public class ApiProxyController {
     // - /api/admin/login|refresh|logout -> auth-service
     // - /api/tires/** 與 /api/admin/tires/** -> tire-service
     // - /api/orders/** 與 /api/admin/orders/** -> order-service
-    // - 其餘 -> backend
+    // - 其餘 -> 直接回 404（Phase 5 已關閉 backend fallback）
     private String resolveTargetBaseUrl(String requestUri) {
         if (isAuthEntryPath(requestUri)) {
             return authBaseUrl;
@@ -146,7 +144,10 @@ public class ApiProxyController {
         if (isOrderPath(requestUri)) {
             return orderBaseUrl;
         }
-        return backendBaseUrl;
+        throw new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Gateway route not found for path: " + requestUri
+        );
     }
 
     // 僅匹配 Auth 對外入口，避免把 admin 業務 API（如 /api/admin/orders）誤導到 auth-service。

@@ -19,33 +19,30 @@
 
 ## 3. 仍指向 backend 的 Gateway 路由盤點
 
-| 類型 | 現況 | 影響 | 依據 |
-|---|---|---|---|
-| fallback 路由 | 目前 `ApiProxyController` 將「不符合 Auth/Tire/Order 規則的 `/api/**`」全部導向 `backendBaseUrl` | 任何未明確匹配的 API 仍會經過 monolith backend | `api-gateway/src/main/java/com/fy20047/tireordering/apigateway/ApiProxyController.java:138-150` |
+Step 8B-3 更新後狀態：**無**
 
-補充（Step 8B-2 已完成）：
-- `api-gateway` 已新增 `GatewayHealthController`，`/api/health` 直接由 Gateway 回應，不再落入 fallback。
-- 對應檔案：`api-gateway/src/main/java/com/fy20047/tireordering/apigateway/GatewayHealthController.java`
+- `api-gateway` 已在 `ApiProxyController` 移除未匹配路徑 fallback 到 backend 的邏輯。
+- 對於未匹配的 `/api/**` 路徑，Gateway 現在直接回 `404`。
+- `/api/health` 已由 `GatewayHealthController` 直接回應，不再透過 fallback。
 
 ## 4. 仍指向 backend 的 Gateway 環境變數盤點
 
-| 位置 | 目前設定 | 備註 |
-|---|---|---|
-| `api-gateway` 應用設定 | `gateway.backend-base-url: ${BACKEND_BASE_URL:http://backend:8080}` | 仍保留 fallback 目標位址 | `api-gateway/src/main/resources/application.yaml:17` |
-| 本機 compose | `BACKEND_BASE_URL: http://backend:8080` | `api-gateway` 服務仍依賴 backend service 名稱 | `infra/docker-compose.yml:136` |
-| 本機 compose | `depends_on: backend` | fallback 流量存在時需要 backend 容器 | `infra/docker-compose.yml:143` |
-| prod compose | `BACKEND_BASE_URL: http://backend:8080` | 與本機 compose 同步，仍保留 fallback 參數 | `infra/docker-compose.prod.yml:123` |
-| prod compose | `depends_on: backend` | 與本機 compose 同步 | `infra/docker-compose.prod.yml:130` |
-| k8s base | `env BACKEND_BASE_URL=http://backend:8080` | Gateway deployment 仍注入 backend fallback 位址 | `k8s/base/gateway-deployment.yaml:27-28` |
+Step 8B-3 更新後狀態：**無**
+
+- `api-gateway/src/main/resources/application.yaml` 已移除 `gateway.backend-base-url`。
+- `infra/docker-compose.yml`、`infra/docker-compose.prod.yml` 的 `api-gateway` 已移除：
+  - `BACKEND_BASE_URL`
+  - `depends_on: backend`
+- `k8s/base/gateway-deployment.yaml` 已移除 `BACKEND_BASE_URL` env 注入。
 
 ## 5. 替代路徑確認結論
 
 - 主業務流量（Auth/Tire/Order）已完成替代路徑，不依賴 backend。
-- 目前仍依賴 backend 的主要剩餘路徑是：所有未明確匹配的 fallback API。
-- `/api/health` 依賴已解除，現在由 Gateway 自身回應。
+- Gateway 路由層已不再依賴 backend（包含 `/api/health`）。
+- 目前 backend 仍存在於部署資源（compose/k8s）層，屬於 Phase 5 下一階段下線工作。
 
 ## 6. 後續拆步建議（下一小步）
 
-1. 移除 `ApiProxyController` 的 fallback 分支與 `BACKEND_BASE_URL` 設定。
-2. 同步更新 compose/k8s 的 `BACKEND_BASE_URL` 與 `depends_on backend`。
-3. 更新 `SETUP_GUIDE.md` 的健康檢查說明，補充 `/api/health` 已由 Gateway 提供。
+1. 進入 Phase 5 下一項：從 `infra/docker-compose*.yml` 移除 `backend` 服務節點並驗證本機啟動。
+2. 同步規劃並執行 `k8s/base`、`k8s/overlays/minikube` 的 backend 資源移除。
+3. 補充 `SETUP_GUIDE.md`：註明 `/api/health` 由 Gateway 自身回應。

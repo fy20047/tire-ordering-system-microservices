@@ -1943,3 +1943,58 @@
 
 ### 小總結
 - `/api/health` 已完成去 backend 依賴；下一步可安全進入 fallback 與 `BACKEND_BASE_URL` 的移除。
+
+## 2026-04-02 - Step 8B-3：移除 Gateway fallback 與 `BACKEND_BASE_URL` 接線
+
+### 對應清單項目
+- `README.md` §12 Phase 5 細項 1：
+  - 關閉 Gateway 對 `backend` 的過渡 fallback 路由。
+- `README.md` §12「Phase 5 待完成項目」第 1 項的實作延伸：
+  - 已盤點完成，接續實際移除 fallback 與相依環境變數。
+
+### 本次修改檔案
+- `api-gateway/src/main/java/com/fy20047/tireordering/apigateway/ApiProxyController.java`（更新）
+- `api-gateway/src/main/resources/application.yaml`（更新）
+- `infra/docker-compose.yml`（更新）
+- `infra/docker-compose.prod.yml`（更新）
+- `k8s/base/gateway-deployment.yaml`（更新）
+- `docs/phase5-gateway-backend-inventory.md`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. Gateway 程式移除 backend fallback
+   - `ApiProxyController` 移除 `backendBaseUrl` 欄位與建構子注入。
+   - 路由判斷改為：
+     - Auth/Tire/Order 路徑 -> 分流到對應微服務
+     - 其餘 `/api/**` -> 直接回 `404`（`ResponseStatusException`）
+   - 同步調整註解與變數命名（`backendResponse` 改為 `downstreamResponse`）。
+2. Gateway 應用設定移除 fallback 參數
+   - `application.yaml` 移除 `gateway.backend-base-url`。
+3. Compose 移除 gateway 對 backend 的直接接線
+   - `infra/docker-compose.yml`、`infra/docker-compose.prod.yml`：
+     - `api-gateway.environment` 移除 `BACKEND_BASE_URL`
+     - `api-gateway.depends_on` 移除 `backend`
+4. K8s base 移除 gateway fallback env
+   - `k8s/base/gateway-deployment.yaml` 移除 `BACKEND_BASE_URL` 注入段落。
+5. 盤點文件更新為收斂後狀態
+   - `docs/phase5-gateway-backend-inventory.md` 更新為：
+     - Gateway 路由與環境變數對 backend 依賴為「無」
+     - 下一步聚焦 backend 服務資源（compose/k8s）下線。
+
+### 註解規範對齊
+- 本步未新增新檔案；既有程式檔案的關鍵註解已同步更新，說明 fallback 關閉後的路由行為。
+
+### 分段原因說明
+- 先在 Step 8B-2 解除 `/api/health` 依賴，再做 fallback 主邏輯移除，可避免一次改動造成健康檢查中斷。
+- 此步只收斂「Gateway 路由與參數」，尚未刪除 `backend` 服務本體，便於問題排查與必要時短暫回切。
+
+### 驗證結果
+- 已執行：
+  - `.\backend\mvnw.cmd -q -DskipTests -f .\api-gateway\pom.xml package`
+  - `docker compose -f infra/docker-compose.yml --env-file infra/.env.example config`
+  - `docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.example config`
+  - `kubectl kustomize k8s/base`
+- 結果：全部成功。
+
+### 小總結
+- Gateway 已完成對 `backend` fallback 的程式與部署參數收斂；下一步可進入 Phase 5 清單第 3/4 項，移除 compose/k8s 的 `backend` 服務資源。
