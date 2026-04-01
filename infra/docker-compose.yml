@@ -101,7 +101,30 @@ services:
       mariadb:
         condition: service_healthy
 
-  # API Gateway：統一 API 入口，Auth/Tire API 各自分流到對應服務
+  # Order Service：Phase 4 起承接前台建單與後台訂單查改，建單時會呼叫 tire-service 驗證商品。
+  order-service:
+    build:
+      context: ../order-service
+      dockerfile: Dockerfile
+    image: tire-ordering-order-service:local
+    container_name: tire_order_service
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-3600}
+      TIRE_BASE_URL: http://tire-service:8080
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      tire-service:
+        condition: service_started
+
+  # API Gateway：統一 API 入口，Auth/Tire/Order API 各自分流到對應服務
   api-gateway:
     build:
       context: ../api-gateway
@@ -112,12 +135,14 @@ services:
       BACKEND_BASE_URL: http://backend:8080
       AUTH_BASE_URL: http://auth-service:8080
       TIRE_BASE_URL: http://tire-service:8080
+      ORDER_BASE_URL: http://order-service:8080
     ports:
       - "8080:8080"
     depends_on:
       - backend
       - auth-service
       - tire-service
+      - order-service
 
   # Frontend：只對外提供 UI，/api 請求改由 nginx 轉給 api-gateway
   frontend:

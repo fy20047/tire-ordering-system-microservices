@@ -1593,3 +1593,39 @@
 
 ### 小總結
 - Gateway 已具備將訂單路徑分流到 `order-service` 的能力；下一步可進行 backend Order 入口收斂與部署同步。
+
+## 2026-04-01 - Step 7H-1：部署接入（Compose）加入 order-service
+
+### 對應清單項目
+- `README.md` §12 Phase 4 細項 8（部署更新）的一部分：先同步 `docker-compose`，讓 Gateway 的訂單分流有實際目標服務。
+
+### 本次修改檔案
+- `infra/docker-compose.yml`（更新）
+- `infra/docker-compose.prod.yml`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. `docker-compose.yml`（本機）
+   - 新增 `order-service` 服務（build `../order-service`）。
+   - 注入 `DB_*`、`JWT_*`、`TIRE_BASE_URL=http://tire-service:8080`。
+   - `depends_on` 新增對 `mariadb` 與 `tire-service` 依賴。
+   - `api-gateway` 新增 `ORDER_BASE_URL=http://order-service:8080`。
+   - `api-gateway.depends_on` 新增 `order-service`。
+2. `docker-compose.prod.yml`（prod）
+   - 新增 `order-service` 服務（image `ghcr.io/fy20047/tire-ordering-system/order-service:latest`）。
+   - 注入與本機一致的核心環境參數（含 `TIRE_BASE_URL`）。
+   - `api-gateway` 新增 `ORDER_BASE_URL=http://order-service:8080`。
+   - `api-gateway.depends_on` 新增 `order-service`。
+
+### 分段原因說明
+- 這一小步只做 Compose 部署接入，不混入 backend 邊界收斂與 k8s 變更，避免一次改動面過大。
+- 先完成本機/prod compose 拓樸對齊，後續再接續 backend Order 入口收斂（Step 7G）。
+
+### 驗證結果
+- 已執行語法解析：
+  - `docker compose -f infra/docker-compose.yml --env-file infra/.env.example config`
+  - `docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.example config`
+- 結果：兩份 compose 均可成功解析。
+
+### 小總結
+- Compose 部署已具備 `order-service`，Gateway 訂單路徑分流 now 有對應上游可轉發。
