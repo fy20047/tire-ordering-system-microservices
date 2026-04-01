@@ -16,9 +16,9 @@ resources:
 namespace: tire-ordering
 images:
 - name: ghcr.io/fy20047/tire-ordering-system-microservices/backend
-  newTag: 3e687ab557565073b8d4060365d6fc2340fccaf2
+  newTag: 9e16beffa9f9e387f2cfb0dbc4b470a10edd5b2d
 - name: ghcr.io/fy20047/tire-ordering-system-microservices/frontend
-  newTag: 3e687ab557565073b8d4060365d6fc2340fccaf2
+  newTag: 9e16beffa9f9e387f2cfb0dbc4b470a10edd5b2d
 - name: ghcr.io/fy20047/tire-ordering-system/api-gateway
   newTag: 3475216ddf09cf67a1e6f64a31a34ef5d6990a19
 - name: ghcr.io/fy20047/tire-ordering-system/auth-service
@@ -27,9 +27,9 @@ images:
   newTag: 3475216ddf09cf67a1e6f64a31a34ef5d6990a19
 - name: ghcr.io/fy20047/tire-ordering-system/frontend
   newTag: 3475216ddf09cf67a1e6f64a31a34ef5d6990a19
-- name: ghcr.io/fy20047/tire-ordering-system/tire-service
-  newTag: 3475216ddf09cf67a1e6f64a31a34ef5d6990a19
 - name: ghcr.io/fy20047/tire-ordering-system/order-service
+  newTag: 3475216ddf09cf67a1e6f64a31a34ef5d6990a19
+- name: ghcr.io/fy20047/tire-ordering-system/tire-service
   newTag: 3475216ddf09cf67a1e6f64a31a34ef5d6990a19
 patches:
 - path: frontend-nodeport.yaml
