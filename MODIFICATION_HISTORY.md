@@ -1629,3 +1629,49 @@
 
 ### 小總結
 - Compose 部署已具備 `order-service`，Gateway 訂單路徑分流 now 有對應上游可轉發。
+
+## 2026-04-01 - Step 7G：收斂 backend 重複 Order API 入口
+
+### 對應清單項目
+- `README.md` §12 Phase 4 細項 7：調整 backend 邊界：停用重複 Order API 入口，保留最小相依作為過渡。
+
+### 本次修改檔案
+- `backend/src/main/java/com/fy20047/tireordering/backend/controller/OrderController.java`（更新）
+- `backend/src/main/java/com/fy20047/tireordering/backend/controller/AdminOrderController.java`（更新）
+- `backend/src/main/resources/application.yaml`（更新）
+- `infra/docker-compose.yml`（更新）
+- `infra/docker-compose.prod.yml`（更新）
+- `infra/.env.example`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 停用 backend 前台 Order 入口（預設）
+   - `OrderController` 新增 `@ConditionalOnProperty`
+   - 條件鍵值：`feature.backend-order-endpoints-enabled=true` 才啟用
+2. 停用 backend 後台 Order 入口（預設）
+   - `AdminOrderController` 新增同樣條件註解
+   - 讓 `/api/admin/orders/**` 預設不再由 backend 對外提供
+3. 新增可回切設定
+   - `application.yaml` 新增：
+     - `feature.backend-order-endpoints-enabled: ${BACKEND_ORDER_ENDPOINTS_ENABLED:false}`
+   - 預設 `false`（符合 Phase 4 邊界收斂目標）
+4. 同步 Compose 與範例環境變數
+   - `infra/docker-compose.yml` / `infra/docker-compose.prod.yml` 的 backend 環境新增：
+     - `BACKEND_ORDER_ENDPOINTS_ENABLED: ${BACKEND_ORDER_ENDPOINTS_ENABLED:-false}`
+   - `infra/.env.example` 新增：
+     - `BACKEND_ORDER_ENDPOINTS_ENABLED=false`
+
+### 分段原因說明
+- 先用 feature flag 收斂重複入口，而不是直接刪除 controller，可保留緊急回切彈性。
+- 這一步只處理 backend 邊界與旗標接線，不混入 k8s 與文件更新，避免驗證範圍過大。
+
+### 驗證結果
+- 已執行 backend 測試：
+  - `.\mvnw.cmd -q test`（於 `backend` 目錄執行）
+- 已執行 compose 語法解析：
+  - `docker compose -f infra/docker-compose.yml --env-file infra/.env.example config`
+  - `docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.example config`
+- 結果：全部成功。
+
+### 小總結
+- backend 的重複 Order API 入口已可預設關閉，Order 對外流量可收斂到 `order-service`；下一步可進行 k8s 與文件/驗證收尾。

@@ -4,6 +4,7 @@ import com.fy20047.tireordering.backend.dto.CreateOrderRequest;
 import com.fy20047.tireordering.backend.dto.CreateOrderResponse;
 import com.fy20047.tireordering.backend.entity.Order;
 import com.fy20047.tireordering.backend.service.OrderService;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -17,6 +18,11 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/orders")
 @Validated
+@ConditionalOnProperty(
+        name = "feature.backend-order-endpoints-enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 // 處理資料接收與驗證、輸入 DTO -> Service -> 資料庫、指定 201 Created
 public class OrderController {
 

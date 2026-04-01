@@ -9,6 +9,7 @@ import com.fy20047.tireordering.backend.service.OrderService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 // 後台訂單管理 API（列表 + 狀態更新），把請求轉成 Service 的操作，回傳 DTO
 @RestController
 @RequestMapping("/api/admin/orders")
+@ConditionalOnProperty(
+        name = "feature.backend-order-endpoints-enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 public class AdminOrderController {
 
     private final OrderService orderService;
