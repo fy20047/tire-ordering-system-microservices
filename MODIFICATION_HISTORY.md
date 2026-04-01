@@ -1863,3 +1863,36 @@
 
 ### 小總結
 - Phase 5 已從高層描述落地為可執行清單與驗收標準，後續可直接按 checklist 逐項推進。
+
+## 2026-04-02 - Step 8B-1：盤點 Gateway 仍指向 backend 的路由與環境變數
+
+### 對應清單項目
+- `README.md` §12「Phase 5 待完成項目」第 1 項：
+  - 盤點所有仍指向 `backend` 的 Gateway 路由與環境變數，確認替代路徑。
+
+### 本次修改檔案
+- `docs/phase5-gateway-backend-inventory.md`（新增）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 新增 Phase 5 盤點文件
+   - 建立 `docs/phase5-gateway-backend-inventory.md`，集中記錄：
+     - 已完成微服務替代的 API 路徑（Auth/Tire/Order）
+     - 仍透過 fallback 指向 `backend` 的路由
+     - `BACKEND_BASE_URL` 在 compose/k8s/gateway 設定中的落點
+2. 確認主要剩餘依賴點
+   - `ApiProxyController` 對未命中路徑仍回落到 `backend`。
+   - `/api/health` 目前仍依賴 fallback（文件與說明頁仍引用）。
+3. 補上下一小步建議
+   - 先補 Gateway 的 `/api/health` 專屬端點，再移除 fallback 與 `BACKEND_BASE_URL`。
+
+### 分段原因說明
+- 此步驟先做「可驗證的現況盤點」，不直接改路由邏輯，避免一次混入盤點與行為改動。
+- 先把替代路徑與剩餘依賴關係寫清楚，下一步移除 fallback 時可精準縮小影響範圍。
+
+### 驗證結果
+- 本步為文件盤點更新，未涉及程式編譯與部署執行。
+- 盤點依據已附上對應檔案與行號，便於逐項追蹤。
+
+### 小總結
+- 已完成 Phase 5 第 1 項的「盤點與替代路徑確認」文件化，下一步可開始最小行為改動：先讓 `/api/health` 脫離 backend fallback。
