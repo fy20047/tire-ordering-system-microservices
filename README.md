@@ -684,7 +684,7 @@ order-service -> (HTTP /api/tires/{id}) -> tire-service
 
 ### Phase 5 待完成項目（截至 2026-04-02）
 
-- [ ] 盤點所有仍指向 `backend` 的 Gateway 路由與環境變數，確認替代路徑
+- [x] 盤點所有仍指向 `backend` 的 Gateway 路由與環境變數，確認替代路徑（已完成：`docs/phase5-gateway-backend-inventory.md`）
 - [ ] 產出資料庫拆分計畫（schema/實例切分、遷移步驟、回滾條件）
 - [ ] 從 `infra/docker-compose*.yml` 移除 `backend` 並完成本機啟動驗證
 - [ ] 從 `k8s/base` 與 `k8s/overlays/minikube` 移除 `backend` 部署與設定注入

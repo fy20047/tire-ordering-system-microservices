@@ -22,7 +22,10 @@
 | 類型 | 現況 | 影響 | 依據 |
 |---|---|---|---|
 | fallback 路由 | 目前 `ApiProxyController` 將「不符合 Auth/Tire/Order 規則的 `/api/**`」全部導向 `backendBaseUrl` | 任何未明確匹配的 API 仍會經過 monolith backend | `api-gateway/src/main/java/com/fy20047/tireordering/apigateway/ApiProxyController.java:138-150` |
-| `/api/health` | 目前沒有專屬轉發規則，會落入 fallback -> backend；文件與首頁也仍引導此路徑 | 拆除 fallback 後，`/api/health` 會失效（目前操作手冊仍依賴） | `api-gateway/src/main/java/com/fy20047/tireordering/apigateway/GatewayInfoController.java:50`、`SETUP_GUIDE.md:43,49,76` |
+
+補充（Step 8B-2 已完成）：
+- `api-gateway` 已新增 `GatewayHealthController`，`/api/health` 直接由 Gateway 回應，不再落入 fallback。
+- 對應檔案：`api-gateway/src/main/java/com/fy20047/tireordering/apigateway/GatewayHealthController.java`
 
 ## 4. 仍指向 backend 的 Gateway 環境變數盤點
 
@@ -38,14 +41,11 @@
 ## 5. 替代路徑確認結論
 
 - 主業務流量（Auth/Tire/Order）已完成替代路徑，不依賴 backend。
-- 仍依賴 backend 的主要剩餘路徑是：`/api/health` 與所有未明確匹配的 fallback API。
-- 可直接替代方案：
-  - 健康檢查改為 Gateway 自身 `actuator`（`/actuator/health` 已啟用，見 `api-gateway/src/main/resources/application.yaml:24-28`）。
-  - 為相容既有腳本與文件，可在 Gateway 先補一個 `/api/health` 專屬端點（回傳 Gateway health），再移除 fallback。
+- 目前仍依賴 backend 的主要剩餘路徑是：所有未明確匹配的 fallback API。
+- `/api/health` 依賴已解除，現在由 Gateway 自身回應。
 
 ## 6. 後續拆步建議（下一小步）
 
-1. 先在 Gateway 新增 `/api/health` 專屬端點，解除對 backend health 的依賴。
-2. 再移除 `ApiProxyController` 的 fallback 分支與 `BACKEND_BASE_URL` 設定。
-3. 同步更新 compose/k8s 的 `BACKEND_BASE_URL` 與 `depends_on backend`。
-
+1. 移除 `ApiProxyController` 的 fallback 分支與 `BACKEND_BASE_URL` 設定。
+2. 同步更新 compose/k8s 的 `BACKEND_BASE_URL` 與 `depends_on backend`。
+3. 更新 `SETUP_GUIDE.md` 的健康檢查說明，補充 `/api/health` 已由 Gateway 提供。

@@ -1896,3 +1896,50 @@
 
 ### 小總結
 - 已完成 Phase 5 第 1 項的「盤點與替代路徑確認」文件化，下一步可開始最小行為改動：先讓 `/api/health` 脫離 backend fallback。
+
+## 2026-04-02 - Step 8B-2：Gateway 新增 `/api/health` 專屬端點（先解除 health 對 backend 依賴）
+
+### 對應清單項目
+- `README.md` §12「Phase 5 待完成項目」第 1 項延伸落地：
+  - 先把 `api/health` 從 fallback 依賴中拆出，降低後續移除 fallback 的風險。
+
+### 本次修改檔案
+- `api-gateway/src/main/java/com/fy20047/tireordering/apigateway/GatewayHealthController.java`（新增）
+- `docs/phase5-gateway-backend-inventory.md`（更新）
+- `README.md`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 新增 Gateway 健康檢查相容端點
+   - 新增 `GatewayHealthController`，提供 `GET /api/health`。
+   - 該端點直接讀取 `HealthEndpoint`（Actuator）健康狀態，回傳：
+     - `timestamp`
+     - `status`
+     - `service=api-gateway`
+     - `details`（若 Actuator 有提供）
+   - 回應碼規則：
+     - `UP` -> `200`
+     - 其他狀態 -> `503`
+2. 盤點文件同步更新現況
+   - `docs/phase5-gateway-backend-inventory.md` 增補 Step 8B-2 狀態：
+     - `/api/health` 已不再依賴 backend fallback。
+     - 目前剩餘依賴點聚焦於「未命中規則的 fallback API」。
+3. Phase 5 清單狀態同步
+   - `README.md` 將「盤點 Gateway 指向 backend 路由與環境變數」勾選為已完成，並附上盤點文件路徑。
+
+### 註解規範對齊
+- 本步新增程式檔 `GatewayHealthController.java` 已補齊中文註解：
+  - 檔案用途（class 註解）
+  - 各段邏輯用途（欄位、端點、資料組裝、HTTP 狀態決策）
+
+### 分段原因說明
+- 先拆 `/api/health`，可避免下一步移除 fallback 時直接影響既有健康檢查與 smoke 前置檢查。
+- 本步不改 `ApiProxyController` fallback 主邏輯，將風險控制在單一路徑。
+
+### 驗證結果
+- 已執行：
+  - `.\backend\mvnw.cmd -q -DskipTests -f .\api-gateway\pom.xml package`
+- 結果：成功。
+
+### 小總結
+- `/api/health` 已完成去 backend 依賴；下一步可安全進入 fallback 與 `BACKEND_BASE_URL` 的移除。
