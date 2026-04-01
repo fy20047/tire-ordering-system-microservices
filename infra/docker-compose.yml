@@ -1,5 +1,5 @@
 services:
-  # MariaDB：目前 monolith 與後續微服務共用資料來源（Phase 1 尚未拆庫）
+  # MariaDB：目前微服務共用資料來源（Phase 5 前仍採單一資料庫實例）
   mariadb:
     image: mariadb:11
     container_name: tire_mariadb
@@ -26,35 +26,6 @@ services:
       - "8081:8080"
     depends_on:
       - mariadb
-
-  # 舊 monolith backend：Phase 3 起以 order 為主，Auth/Tire 入口預設停用
-  backend:
-    build:
-      context: ../backend
-      dockerfile: Dockerfile
-    image: tire-ordering-backend:local
-    container_name: tire_backend
-    environment:
-      DB_HOST: mariadb
-      DB_PORT: 3306
-      DB_NAME: ${DB_NAME}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
-      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
-      JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-3600}
-      JWT_REFRESH_EXPIRATION_SECONDS: ${JWT_REFRESH_EXPIRATION_SECONDS:-1209600}
-      JWT_REFRESH_COOKIE_NAME: ${JWT_REFRESH_COOKIE_NAME:-refreshToken}
-      JWT_REFRESH_COOKIE_SECURE: ${JWT_REFRESH_COOKIE_SECURE:-false}
-      JWT_REFRESH_COOKIE_SAME_SITE: ${JWT_REFRESH_COOKIE_SAME_SITE:-Lax}
-      BACKEND_AUTH_ENDPOINTS_ENABLED: ${BACKEND_AUTH_ENDPOINTS_ENABLED:-false}
-      BACKEND_TIRE_ENDPOINTS_ENABLED: ${BACKEND_TIRE_ENDPOINTS_ENABLED:-false}
-      BACKEND_ORDER_ENDPOINTS_ENABLED: ${BACKEND_ORDER_ENDPOINTS_ENABLED:-false}
-      ADMIN_USERNAME: ${ADMIN_USERNAME}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
-    depends_on:
-      mariadb:
-        condition: service_healthy
 
   # Auth Service：Phase 2 起承接 /api/admin/login|refresh|logout
   auth-service:

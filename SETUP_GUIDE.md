@@ -7,20 +7,16 @@
 1) 複製一份 `infra/.env.example` 並重新命名為 `infra/.env`
 2) 開啟 `.env` 填入必要的變數值（例如：資料庫密碼、管理員帳號密碼、`JWT_PRIVATE_KEY`、`JWT_PUBLIC_KEY`）
 
-## 目前服務拓樸（Phase 4 進行中）
+## 目前服務拓樸（Phase 5：Gateway 純微服務分流）
 - 前端流量：`frontend -> api-gateway`
 - Auth 路徑：`/api/admin/login|refresh|logout -> auth-service`
 - Tire 路徑：`/api/tires/**`、`/api/admin/tires/** -> tire-service`
 - Order 路徑：`/api/orders/**`、`/api/admin/orders/** -> order-service`
 - `order-service` 建單流程：會呼叫 `tire-service` 的 `/api/tires/{id}` 驗證商品可下單並寫入 snapshot
-- 其餘未拆分路徑：仍由 `backend` 過渡承接
 
-## 重要環境變數（Phase 4）
+## 重要環境變數（Phase 5）
 - `ORDER_BASE_URL`（Gateway 轉發訂單 API 目標）
 - `TIRE_BASE_URL`（Gateway 轉發輪胎 API + order-service 驗證商品目標）
-- `BACKEND_AUTH_ENDPOINTS_ENABLED=false`
-- `BACKEND_TIRE_ENDPOINTS_ENABLED=false`
-- `BACKEND_ORDER_ENDPOINTS_ENABLED=false`
 - `JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY`
 - `JWT_EXPIRATION_SECONDS`
 

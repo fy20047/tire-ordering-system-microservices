@@ -27,32 +27,6 @@ services:
     depends_on:
       - mariadb
 
-  backend:
-    image: ghcr.io/fy20047/tire-ordering-system/backend:latest
-    container_name: tire_backend
-    restart: always
-    environment:
-      DB_HOST: mariadb
-      DB_PORT: 3306
-      DB_NAME: ${DB_NAME}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
-      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
-      JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-3600}
-      JWT_REFRESH_EXPIRATION_SECONDS: ${JWT_REFRESH_EXPIRATION_SECONDS:-1209600}
-      JWT_REFRESH_COOKIE_NAME: ${JWT_REFRESH_COOKIE_NAME:-refreshToken}
-      JWT_REFRESH_COOKIE_SECURE: ${JWT_REFRESH_COOKIE_SECURE:-false}
-      JWT_REFRESH_COOKIE_SAME_SITE: ${JWT_REFRESH_COOKIE_SAME_SITE:-Lax}
-      BACKEND_AUTH_ENDPOINTS_ENABLED: ${BACKEND_AUTH_ENDPOINTS_ENABLED:-false}
-      BACKEND_TIRE_ENDPOINTS_ENABLED: ${BACKEND_TIRE_ENDPOINTS_ENABLED:-false}
-      BACKEND_ORDER_ENDPOINTS_ENABLED: ${BACKEND_ORDER_ENDPOINTS_ENABLED:-false}
-      ADMIN_USERNAME: ${ADMIN_USERNAME}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
-    depends_on:
-      mariadb:
-        condition: service_healthy
-
   auth-service:
     image: ghcr.io/fy20047/tire-ordering-system/auth-service:latest
     container_name: tire_auth_service

@@ -1998,3 +1998,58 @@
 
 ### 小總結
 - Gateway 已完成對 `backend` fallback 的程式與部署參數收斂；下一步可進入 Phase 5 清單第 3/4 項，移除 compose/k8s 的 `backend` 服務資源。
+
+## 2026-04-02 - Step 8C-1：從 compose 移除 `backend` 並完成本機啟動驗證
+
+### 對應清單項目
+- `README.md` §12「Phase 5 待完成項目」第 3 項：
+  - 從 `infra/docker-compose*.yml` 移除 `backend` 並完成本機啟動驗證。
+
+### 本次修改檔案
+- `infra/docker-compose.yml`（更新）
+- `infra/docker-compose.prod.yml`（更新）
+- `infra/.env.example`（更新）
+- `SETUP_GUIDE.md`（更新）
+- `README.md`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 本機 compose 移除 `backend` 服務節點
+   - `infra/docker-compose.yml` 刪除完整 `backend` service 區塊。
+   - 同步更新 MariaDB 註解文字，改為「微服務共用資料來源」。
+2. prod compose 移除 `backend` 服務節點
+   - `infra/docker-compose.prod.yml` 刪除完整 `backend` service 區塊。
+3. 清理 compose 已不再使用的 backend 旗標變數
+   - `infra/.env.example` 移除：
+     - `BACKEND_AUTH_ENDPOINTS_ENABLED`
+     - `BACKEND_TIRE_ENDPOINTS_ENABLED`
+     - `BACKEND_ORDER_ENDPOINTS_ENABLED`
+4. 同步更新操作文件避免舊描述誤導
+   - `SETUP_GUIDE.md`：
+     - 拓樸標題更新為「Phase 5：Gateway 純微服務分流」
+     - 移除「其餘未拆分路徑由 backend 過渡承接」
+     - `重要環境變數` 標題更新為 Phase 5，移除 `BACKEND_*` 變數說明
+5. README 清單勾選
+   - 將「移除 compose backend 並完成本機啟動驗證」標記為已完成，並附上驗證命令摘要。
+
+### 分段原因說明
+- 先完成 compose 下線，可最快取得「本機純微服務拓樸」驗證結果，再進入 k8s backend 下線。
+- 本步只處理 compose 與直接相關文件，不混入 k8s/CI 變更，保持回滾面可控。
+
+### 驗證結果
+- 語法驗證：
+  - `docker compose -f infra/docker-compose.yml --env-file infra/.env.example config`
+  - `docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.example config`
+  - 結果：成功，輸出服務清單皆不含 `backend`。
+- 本機啟動驗證（dev compose）：
+  - `docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --build`
+  - `docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --remove-orphans`
+  - `docker compose -f infra/docker-compose.yml --env-file infra/.env ps`
+  - 結果：`backend` orphan 容器已移除，運行服務為 `mariadb/adminer/auth-service/tire-service/order-service/api-gateway/frontend`。
+- 路由與健康檢查驗證：
+  - `GET http://localhost:8080/api/health` -> `200`
+  - `GET http://localhost:8080/api/legacy-fallback-check` -> `404`
+  - 結果：符合「無 backend fallback + 純微服務轉發」預期。
+
+### 小總結
+- compose 層已完成 backend 下線且本機啟動驗證通過；下一步可進入 `k8s/base` 與 `k8s/overlays/minikube` 的 backend 資源移除。
