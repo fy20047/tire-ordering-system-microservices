@@ -663,6 +663,35 @@ Browser -> Frontend -> Ingress(/api) -> API Gateway
 order-service -> (HTTP /api/tires/{id}) -> tire-service
 ```
 
+### Phase 5 細項（收斂與下線 Monolith）
+
+1. 關閉 Gateway 對 `backend` 的過渡 fallback 路由，僅保留 `auth/tire/order` 三個業務服務入口
+2. 下線 monolith backend 部署：移除 `docker-compose`、`k8s`、ArgoCD 內 `backend` 服務節點
+3. 收斂資料邊界：制定並執行 `auth/tire/order` 的資料庫拆分方案（至少先完成 schema 邊界）
+4. 清理過渡代碼：移除 `backend` 內已被 feature flag 停用的重複 API 與對應設定
+5. 收斂 CI/CD：改為只建置與發佈 `api-gateway/auth-service/tire-service/order-service/frontend`
+6. 補強可觀測性：完成 metrics/log/trace 基本盤與告警門檻
+7. 補齊營運文件：更新 runbook（故障排查、回滾策略、資料修復流程）
+8. 執行 Phase 5 smoke 與回歸驗證，確認前台/後台主流程在純微服務拓樸可用
+
+### Phase 5 完成判準
+
+1. 對外 API 流量不再經過 `backend`，Gateway 僅分流到微服務
+2. `backend` 不再出現在 compose/k8s/發佈流程
+3. `auth/tire/order` 具備明確資料邊界，且完成遷移與驗證
+4. 監控、告警、追蹤、runbook 均可支撐值班與回滾
+5. Phase 5 smoke 全部通過，前端操作路徑維持不變
+
+### Phase 5 待完成項目（截至 2026-04-02）
+
+- [ ] 盤點所有仍指向 `backend` 的 Gateway 路由與環境變數，確認替代路徑
+- [ ] 產出資料庫拆分計畫（schema/實例切分、遷移步驟、回滾條件）
+- [ ] 從 `infra/docker-compose*.yml` 移除 `backend` 並完成本機啟動驗證
+- [ ] 從 `k8s/base` 與 `k8s/overlays/minikube` 移除 `backend` 部署與設定注入
+- [ ] 更新 `.github/workflows`，移除 backend build/push，補純微服務流程驗證
+- [ ] 補齊 Phase 5 smoke 指令與實跑結果到 `SETUP_GUIDE.md`
+- [ ] 補齊最終拓樸 ASCII 圖與 runbook 索引到 `README.md`
+
 ---
 
 ## 13. 目標目錄結構（最終樣貌）
