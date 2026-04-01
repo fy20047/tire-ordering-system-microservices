@@ -642,6 +642,27 @@ Config 與 Secret 原則：
   - 建單後修改輪胎主檔價格/名稱，舊訂單顯示仍為舊 snapshot 值。
   - 新訂單則採用修改後的新值（表示 snapshot 是「建單時刻」快照）。
 
+### Phase 4 技術總結（進行中，已完成 1~8）
+
+- 服務切分：`order-service` 已承接 `/api/orders/**` 與 `/api/admin/orders/**`，Gateway 完成訂單路由分流。
+- 資料模型：`Order` 改為 `tireId + snapshot`，移除 `Order -> Tire` JPA 直接關聯。
+- 建單流程：`order-service` 改為呼叫 `tire-service` 驗證商品可下單，並把商品資料寫入 snapshot。
+- 邊界收斂：`backend` 的重複 Order 入口改為 feature flag 控制（預設關閉）。
+- 部署同步：`docker-compose`、`k8s base/overlay`、`.env.example` 已加入 `order-service`、`ORDER_BASE_URL`、`BACKEND_ORDER_ENDPOINTS_ENABLED`。
+- 待完成項目：Phase 4 第 9 項 smoke（snapshot 回歸驗證）尚待執行與記錄。
+
+### Phase 4 目前拓樸（實際狀態）
+
+```text
+Browser -> Frontend -> Ingress(/api) -> API Gateway
+  -> /api/admin/login|refresh|logout -> auth-service
+  -> /api/tires/**, /api/admin/tires/** -> tire-service
+  -> /api/orders/**, /api/admin/orders/** -> order-service
+  -> (其餘過渡路徑) -> backend
+
+order-service -> (HTTP /api/tires/{id}) -> tire-service
+```
+
 ---
 
 ## 13. 目標目錄結構（最終樣貌）
@@ -791,6 +812,14 @@ Config 與 Secret 原則：
 | 檔案 | 說明 |
 |---|---|
 | `k8s/base/kustomization.yaml` | base 資源組合入口 |
+| `k8s/base/gateway-deployment.yaml` | API Gateway Deployment |
+| `k8s/base/gateway-service.yaml` | API Gateway Service |
+| `k8s/base/auth-deployment.yaml` | auth-service Deployment |
+| `k8s/base/auth-service.yaml` | auth-service Service |
+| `k8s/base/tire-deployment.yaml` | tire-service Deployment |
+| `k8s/base/tire-service.yaml` | tire-service Service |
+| `k8s/base/order-deployment.yaml` | order-service Deployment |
+| `k8s/base/order-service.yaml` | order-service Service |
 | `k8s/base/backend-deployment.yaml` | backend Deployment |
 | `k8s/base/backend-service.yaml` | backend Service |
 | `k8s/base/frontend-deployment.yaml` | frontend Deployment |
@@ -804,6 +833,9 @@ Config 與 Secret 原則：
 | `k8s/overlays/minikube/app-sealedsecret.yaml` | app 密鑰 SealedSecret |
 | `k8s/overlays/minikube/db-sealedsecret.yaml` | DB 密鑰 SealedSecret |
 | `k8s/overlays/minikube/backend-configmap-env.yaml` | backend env patch |
+| `k8s/overlays/minikube/auth-configmap-env.yaml` | auth-service env patch |
+| `k8s/overlays/minikube/tire-configmap-env.yaml` | tire-service env patch |
+| `k8s/overlays/minikube/order-configmap-env.yaml` | order-service env patch |
 | `k8s/overlays/minikube/backend-resources.yaml` | backend 資源限制 patch |
 | `k8s/overlays/minikube/backend-scale.yaml` | backend replica patch |
 | `k8s/overlays/minikube/frontend-nodeport.yaml` | frontend NodePort patch |

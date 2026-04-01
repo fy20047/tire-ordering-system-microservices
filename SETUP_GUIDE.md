@@ -7,15 +7,20 @@
 1) 複製一份 `infra/.env.example` 並重新命名為 `infra/.env`
 2) 開啟 `.env` 填入必要的變數值（例如：資料庫密碼、管理員帳號密碼、`JWT_PRIVATE_KEY`、`JWT_PUBLIC_KEY`）
 
-## 目前服務拓樸（Phase 3 結案）
+## 目前服務拓樸（Phase 4 進行中）
 - 前端流量：`frontend -> api-gateway`
 - Auth 路徑：`/api/admin/login|refresh|logout -> auth-service`
 - Tire 路徑：`/api/tires/**`、`/api/admin/tires/** -> tire-service`
-- 其餘既有業務路徑（目前主要是 Order）：仍由 `backend` 承接（等待 Phase 4 抽離）
+- Order 路徑：`/api/orders/**`、`/api/admin/orders/** -> order-service`
+- `order-service` 建單流程：會呼叫 `tire-service` 的 `/api/tires/{id}` 驗證商品可下單並寫入 snapshot
+- 其餘未拆分路徑：仍由 `backend` 過渡承接
 
-## 重要環境變數（Phase 3）
+## 重要環境變數（Phase 4）
+- `ORDER_BASE_URL`（Gateway 轉發訂單 API 目標）
+- `TIRE_BASE_URL`（Gateway 轉發輪胎 API + order-service 驗證商品目標）
 - `BACKEND_AUTH_ENDPOINTS_ENABLED=false`
 - `BACKEND_TIRE_ENDPOINTS_ENABLED=false`
+- `BACKEND_ORDER_ENDPOINTS_ENABLED=false`
 - `JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY`
 - `JWT_EXPIRATION_SECONDS`
 
@@ -60,16 +65,18 @@ docker compose -f infra/docker-compose.prod.yml down
 docker login ghcr.io
 ```
 
-## Phase 3 Smoke 驗證（Gateway 分流後）
+## Smoke 驗證（Phase 4 目前）
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke\run-smoke-gateway.ps1 `
   -BaseUrl "http://localhost:8080" `
   -AdminUsername "<your_admin_username>" `
   -AdminPassword "<your_admin_password>"
 ```
-驗證重點：公開輪胎查詢、後台輪胎 CRUD/上下架、授權失敗路徑、登入刷新登出、訂單核心流程。
+目前可驗證：公開輪胎查詢、後台輪胎 CRUD/上下架、授權失敗路徑、登入刷新登出、訂單核心流程。
 
-## Phase 4 Snapshot 設計說明（開工前必讀）
+Phase 4 完整驗證重點（Step 7I）：建單成功/失敗、後台查改單、snapshot 不受後續輪胎主檔修改影響（舊單保留舊值，新單採新值）。
+
+## Phase 4 Snapshot 設計與現況
 - 核心概念：
   - Snapshot 是「下單當下商品快照」，用來保證歷史訂單資料不被商品主檔後續變更影響。
 - 角色分工：
@@ -78,6 +85,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke\run-smoke-gateway.ps1 `
 - 實作重點：
   - 訂單表新增 snapshot 欄位（品牌/系列/尺寸/價格等），移除對 Tire Entity 的直接關聯依賴。
   - 查單 API 以 snapshot 為主，不再即時 join 商品主檔。
+- 目前進度：
+  - Snapshot 欄位與建單寫入流程已在 `order-service` 落地。
+  - Gateway / Compose / K8s 已接上 `order-service` 路徑分流。
 - 回歸驗證：
   - 建單後修改輪胎主檔，再查舊訂單應維持原 snapshot。
   - 新建訂單應採用修改後新值。
@@ -98,13 +108,13 @@ kubectl -n tire-ordering create secret generic db-secret --from-literal=MARIADB_
 2-2. 建立應用程式相關的 Secret (app-secret)
 - 包含 JWT RS256 金鑰（private/public key）、管理員帳號與密碼
 - `replace_with_private_key` / `replace_with_public_key` 與 `changeme` 都要替換成真實值
+- `BACKEND_*_ENDPOINTS_ENABLED` 由 `app-config` ConfigMap 管理，不需放在 app-secret
 ```powershell
 kubectl -n tire-ordering create secret generic app-secret `
   --from-literal=JWT_PRIVATE_KEY='<your_rs256_private_key_pem>' `
   --from-literal=JWT_PUBLIC_KEY='<your_rs256_public_key_pem>' `
   --from-literal=ADMIN_USERNAME=admin `
-  --from-literal=ADMIN_PASSWORD=changeme `
-  --from-literal=BACKEND_AUTH_ENDPOINTS_ENABLED=false
+  --from-literal=ADMIN_PASSWORD=changeme
 ```
 
 ## Sealed Secrets (Git 安全加密金鑰)
@@ -179,7 +189,7 @@ minikube start --driver=docker
 kubectl config use-context minikube
 ```
 ### 2. 部署應用程式
-使用 Kustomize 部署會用到的 K8s 資源 (DB, Backend, Auth Service, Tire Service, API Gateway, Frontend)，第一次部署前，要先確定有手動建立 Secret (上方的 db-secret, app-secret)
+使用 Kustomize 部署會用到的 K8s 資源 (DB, Backend, Auth Service, Tire Service, Order Service, API Gateway, Frontend)，第一次部署前，要先確定有手動建立 Secret (上方的 db-secret, app-secret)
 ```powershell
 # Apply manifests
 kubectl apply -k k8s/overlays/minikube
@@ -210,6 +220,7 @@ kubectl -n tire-ordering rollout restart deployment frontend
 kubectl -n tire-ordering rollout restart deployment backend
 kubectl -n tire-ordering rollout restart deployment auth-service
 kubectl -n tire-ordering rollout restart deployment tire-service
+kubectl -n tire-ordering rollout restart deployment order-service
 kubectl -n tire-ordering rollout restart deployment api-gateway
 ```
 

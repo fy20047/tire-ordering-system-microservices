@@ -1732,3 +1732,36 @@
 
 ### 小總結
 - K8s 已完成 `order-service` 接入與 Gateway 訂單分流接線，叢集部署拓樸與目前 Phase 4 程式邊界一致。
+
+## 2026-04-01 - Step 7H-3：文件收尾（README / SETUP_GUIDE）
+
+### 對應清單項目
+- `README.md` §12 Phase 4 細項 8（部署與文件更新）的一部分：補齊 README 與 SETUP 的 Phase 4 現況說明。
+
+### 本次修改檔案
+- `README.md`（更新）
+- `SETUP_GUIDE.md`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. `README.md` 補齊 Phase 4 目前狀態
+   - 新增「Phase 4 技術總結（進行中，已完成 1~8）」。
+   - 新增「Phase 4 目前拓樸（實際狀態）」ASCII 架構圖，明確標示 Gateway 分流與 `order-service -> tire-service` 呼叫關係。
+   - 更新 `15.5 Kubernetes` 檔案索引，納入 `order-service` base 資源與 overlay env patch。
+2. `SETUP_GUIDE.md` 同步 Phase 4 操作資訊
+   - 將服務拓樸由 Phase 3 更新為 Phase 4（含 Order 路徑與 snapshot 流程）。
+   - 重要環境變數新增 `ORDER_BASE_URL`、`TIRE_BASE_URL`、`BACKEND_ORDER_ENDPOINTS_ENABLED`。
+   - Smoke 區塊改為 Phase 4 目前驗證重點，並補充完整 snapshot 驗證目標。
+   - Kubernetes 部署說明補上 `order-service`。
+   - rollout restart 清單補上 `order-service`。
+   - app-secret 建立說明補充：`BACKEND_*_ENDPOINTS_ENABLED` 改由 `app-config` 管理，不需放 app-secret。
+
+### 分段原因說明
+- 在程式與 K8s 接線完成後，先同步文件可避免團隊操作與實際拓樸不一致。
+- 此步僅做文件修正，不混入 smoke 腳本改版，保持變更目的單純。
+
+### 驗證結果
+- 本步為文件更新，未涉及程式編譯或部署參數變更驗證。
+
+### 小總結
+- README 與 SETUP 已對齊目前 Phase 4 真實狀態，可直接作為後續 smoke 驗證與部署操作依據。
