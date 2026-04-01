@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  # Gateway Deployment：Phase 2 持續作為統一 API 入口，Auth API 轉發到 auth-service
+  # Gateway Deployment：統一 API 入口，依路徑轉發到 Auth/Tire/Order 專屬服務。
   name: api-gateway
   labels:
     app: api-gateway
@@ -23,7 +23,7 @@ spec:
             - name: http
               containerPort: 8080
           env:
-            # 這段用途：業務 API 仍轉發到 backend（tire/order 維持在 monolith）。
+            # 這段用途：其餘未拆分業務 API 仍轉發到 backend。
             - name: BACKEND_BASE_URL
               value: http://backend:8080
             # 這段用途：Auth API（login/refresh/logout）轉發到 auth-service。
@@ -32,6 +32,9 @@ spec:
             # 這段用途：Tire API（公開與後台輪胎管理）轉發到 tire-service。
             - name: TIRE_BASE_URL
               value: http://tire-service:8080
+            # 這段用途：Order API（建單與後台訂單管理）轉發到 order-service。
+            - name: ORDER_BASE_URL
+              value: http://order-service:8080
           readinessProbe:
             # 用 actuator health 判斷是否可接流量
             httpGet:

@@ -9,6 +9,8 @@ resources:
   - auth-deployment.yaml
   - tire-service.yaml
   - tire-deployment.yaml
+  - order-service.yaml
+  - order-deployment.yaml
   - gateway-service.yaml
   - gateway-deployment.yaml
   - frontend-service.yaml

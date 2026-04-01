@@ -1675,3 +1675,60 @@
 
 ### 小總結
 - backend 的重複 Order API 入口已可預設關閉，Order 對外流量可收斂到 `order-service`；下一步可進行 k8s 與文件/驗證收尾。
+
+## 2026-04-01 - Step 7H-2：K8s 接入 order-service 與 gateway 訂單分流
+
+### 對應清單項目
+- `README.md` §12 Phase 4 細項 8（部署更新）的一部分：同步 `k8s` 讓 order-service 可在叢集運行並承接 Gateway 訂單路徑。
+
+### 本次修改檔案
+- `k8s/base/order-deployment.yaml`（新增）
+- `k8s/base/order-service.yaml`（新增）
+- `k8s/base/kustomization.yaml`（更新）
+- `k8s/base/gateway-deployment.yaml`（更新）
+- `k8s/overlays/minikube/app-config.yaml`（更新）
+- `k8s/overlays/minikube/backend-configmap-env.yaml`（更新）
+- `k8s/overlays/minikube/order-configmap-env.yaml`（新增）
+- `k8s/overlays/minikube/kustomization.yaml`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 新增 order-service 基礎資源（base）
+   - 新增 `order-service` Deployment（port 8080、readiness/liveness probe）。
+   - 新增 `order-service` ClusterIP Service（port 8080）。
+   - `base/kustomization.yaml` 納入上述兩個新資源。
+2. 更新 Gateway base 分流參數
+   - `gateway-deployment.yaml` 新增 `ORDER_BASE_URL=http://order-service:8080`。
+   - 同步註解說明 Gateway 現在分流 Auth/Tire/Order。
+3. 更新 minikube overlay 環境接線
+   - `app-config.yaml` 新增：
+     - `TIRE_BASE_URL=http://tire-service:8080`
+     - `BACKEND_ORDER_ENDPOINTS_ENABLED=false`
+   - `backend-configmap-env.yaml` 新增 `BACKEND_ORDER_ENDPOINTS_ENABLED` 注入。
+   - 新增 `order-configmap-env.yaml`：
+     - 注入 `DB_HOST`、`DB_PORT`、`DB_NAME`、`JWT_EXPIRATION_SECONDS`、`TIRE_BASE_URL`。
+   - `overlays/minikube/kustomization.yaml` 新增：
+     - `order-service` image tag 覆蓋
+     - `order-configmap-env.yaml` patch
+
+### 註解規範對齊
+- 本步新增的 K8s 檔案（`order-deployment.yaml`、`order-service.yaml`、`order-configmap-env.yaml`）皆補上中文註解：
+  - 檔案用途
+  - 主要區塊用途（env/probe/selector）
+
+### 分段原因說明
+- 本步只做 K8s 部署接線，不混入 README/SETUP 與 smoke 腳本，保持風險邊界單純。
+- 先讓叢集拓樸對齊 Step 7F/7G 的程式分流，再進行文件與驗證收尾。
+
+### 驗證結果
+- 已執行：
+  - `kubectl kustomize k8s/base`
+  - `kubectl kustomize k8s/overlays/minikube`
+- 結果：均可成功輸出 manifest，且確認包含：
+  - `Service/order-service`
+  - `Deployment/order-service`
+  - `Deployment/api-gateway` 內 `ORDER_BASE_URL`
+  - `backend` 的 `BACKEND_ORDER_ENDPOINTS_ENABLED` 注入
+
+### 小總結
+- K8s 已完成 `order-service` 接入與 Gateway 訂單分流接線，叢集部署拓樸與目前 Phase 4 程式邊界一致。

@@ -58,3 +58,8 @@ spec:
                 configMapKeyRef:
                   name: app-config
                   key: BACKEND_TIRE_ENDPOINTS_ENABLED
+            - name: BACKEND_ORDER_ENDPOINTS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: BACKEND_ORDER_ENDPOINTS_ENABLED

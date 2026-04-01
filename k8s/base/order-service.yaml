@@ -1,0 +1,17 @@
+# 這份檔案用途：
+# 定義 Order Service 的 ClusterIP 服務，讓 api-gateway 以 service name 轉發訂單 API。
+apiVersion: v1
+kind: Service
+metadata:
+  # 這段用途：宣告 service 名稱與標籤，提供叢集內 DNS 路由。
+  name: order-service
+  labels:
+    app: order-service
+spec:
+  # 這段用途：對外暴露 service port 8080，導到 pod containerPort 8080。
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  selector:
+    app: order-service

@@ -1,0 +1,40 @@
+# 這份檔案用途：
+# 以 patch 方式補齊 order-service 的非機密環境變數，統一由 app-config 提供。
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # 這段用途：指定要 patch 的目標 Deployment。
+  name: order-service
+spec:
+  template:
+    spec:
+      containers:
+        - name: order-service
+          env:
+            # 這段用途：資料庫連線位置改由 ConfigMap 管理，避免硬編碼在 base。
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: DB_NAME
+            # 這段用途：JWT 到期時間與輪胎服務位址統一由 app-config 管理。
+            - name: JWT_EXPIRATION_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: JWT_EXPIRATION_SECONDS
+            - name: TIRE_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: TIRE_BASE_URL
