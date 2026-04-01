@@ -2,7 +2,7 @@
 用途說明：
 這支腳本用來執行「Gateway 入口切換後」的 Smoke Integration 測試。
 目標是快速確認核心鏈路仍正常：Ingress/Proxy/Auth/Cookie/Public/Admin/Write path 都可用。
-並覆蓋 Phase 3 的 Tire Service 分流後關鍵路徑（公開輪胎查詢 + 後台輪胎管理）。
+並覆蓋 Phase 4 的關鍵驗收：Order Service 建單成功/失敗與 Snapshot 不受輪胎後續修改影響。
 
 使用方式（本機範例）：
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke\run-smoke-gateway.ps1 `
@@ -95,10 +95,10 @@ function Invoke-ApiRequest {
     Write-Step "$Name -> $Method $Uri"
 
     $requestParams = @{
-        Uri        = $Uri
-        Method     = $Method
-        TimeoutSec = $TimeoutSec
-        WebSession = $Session
+        Uri         = $Uri
+        Method      = $Method
+        TimeoutSec  = $TimeoutSec
+        WebSession  = $Session
         ErrorAction = "Stop"
     }
 
@@ -137,8 +137,8 @@ function Invoke-ApiRequest {
 
     return [PSCustomObject]@{
         StatusCode = $statusCode
-        BodyText = $responseText
-        Headers = $responseHeaders
+        BodyText   = $responseText
+        Headers    = $responseHeaders
     }
 }
 
@@ -152,6 +152,61 @@ function Convert-JsonOrNull([string]$BodyText) {
     } catch {
         return $null
     }
+}
+
+# 從後台訂單列表中依 id 取出指定訂單；若不存在則直接失敗，避免後續檢查誤判。
+function Get-OrderFromAdminList {
+    param(
+        [Parameter(Mandatory = $true)]$AdminOrdersJson,
+        [Parameter(Mandatory = $true)][long]$OrderId,
+        [Parameter(Mandatory = $true)][string]$ScenarioName
+    )
+
+    if ($null -eq $AdminOrdersJson -or $null -eq $AdminOrdersJson.items) {
+        Write-Fail "$ScenarioName：後台訂單列表回應缺少 items。"
+    }
+
+    $order = $AdminOrdersJson.items | Where-Object { $_.id -eq $OrderId } | Select-Object -First 1
+    if ($null -eq $order) {
+        Write-Fail "$ScenarioName：後台列表未找到 orderId=$OrderId。"
+    }
+
+    return $order
+}
+
+# 驗證訂單內的輪胎快照欄位，確保 snapshot 與預期版本完全一致。
+function Assert-OrderSnapshot {
+    param(
+        [Parameter(Mandatory = $true)]$OrderItem,
+        [Parameter(Mandatory = $true)][long]$ExpectedTireId,
+        [Parameter(Mandatory = $true)][string]$ExpectedBrand,
+        [Parameter(Mandatory = $true)][string]$ExpectedSeries,
+        [Parameter(Mandatory = $true)][string]$ExpectedOrigin,
+        [Parameter(Mandatory = $true)][string]$ExpectedSize,
+        [Parameter(Mandatory = $true)][int]$ExpectedPrice,
+        [Parameter(Mandatory = $true)][string]$ScenarioName
+    )
+
+    if ($OrderItem.tireId -ne $ExpectedTireId) {
+        Write-Fail "$ScenarioName：tireId 預期 $ExpectedTireId，實際 $($OrderItem.tireId)。"
+    }
+    if ($OrderItem.tireBrand -ne $ExpectedBrand) {
+        Write-Fail "$ScenarioName：tireBrand 預期 '$ExpectedBrand'，實際 '$($OrderItem.tireBrand)'。"
+    }
+    if ($OrderItem.tireSeries -ne $ExpectedSeries) {
+        Write-Fail "$ScenarioName：tireSeries 預期 '$ExpectedSeries'，實際 '$($OrderItem.tireSeries)'。"
+    }
+    if ($OrderItem.tireOrigin -ne $ExpectedOrigin) {
+        Write-Fail "$ScenarioName：tireOrigin 預期 '$ExpectedOrigin'，實際 '$($OrderItem.tireOrigin)'。"
+    }
+    if ($OrderItem.tireSize -ne $ExpectedSize) {
+        Write-Fail "$ScenarioName：tireSize 預期 '$ExpectedSize'，實際 '$($OrderItem.tireSize)'。"
+    }
+    if ($null -eq $OrderItem.tirePrice -or [int]$OrderItem.tirePrice -ne $ExpectedPrice) {
+        Write-Fail "$ScenarioName：tirePrice 預期 $ExpectedPrice，實際 $($OrderItem.tirePrice)。"
+    }
+
+    Write-Pass "$ScenarioName：snapshot 欄位符合預期"
 }
 
 # 準備登入帳密：優先使用參數，其次環境變數
@@ -236,19 +291,32 @@ Invoke-ApiRequest `
     -ExpectedStatus 403 `
     -Session (New-Object Microsoft.PowerShell.Commands.WebRequestSession) | Out-Null
 
-# 5) Admin create tire：驗證後台輪胎新增流程。
+# 5) 準備 Phase 4 Snapshot 驗證用輪胎資料（版本 A/B）
+$baselineTireBrand = "SmokeBrand$smokeSuffix"
+$baselineTireSeries = "SmokeSeries$smokeSuffix"
+$baselineTireOrigin = "TW"
+$baselineTireSize = "205/55R16"
+$baselineTirePrice = 1234
+
+$updatedTireBrand = "${baselineTireBrand}V2"
+$updatedTireSeries = "${baselineTireSeries}V2"
+$updatedTireOrigin = "JP"
+$updatedTireSize = "225/45R17"
+$updatedTirePrice = 1567
+
+# 6) Admin create tire：建立 smoke 專用輪胎（版本 A）
 $createTireResult = Invoke-ApiRequest `
-    -Name "Admin create tire" `
+    -Name "Admin create tire for snapshot scenario" `
     -Method "POST" `
     -Uri "$BaseUrl/api/admin/tires" `
     -ExpectedStatus 201 `
     -Headers $authorizedHeaders `
     -Body @{
-        brand = "SmokeBrand$smokeSuffix"
-        series = "SmokeSeries$smokeSuffix"
-        origin = "TW"
-        size = "205/55R16"
-        price = 1234
+        brand = $baselineTireBrand
+        series = $baselineTireSeries
+        origin = $baselineTireOrigin
+        size = $baselineTireSize
+        price = $baselineTirePrice
         isActive = $true
     } `
     -Session $session
@@ -260,46 +328,7 @@ if ($null -eq $createTireJson -or $null -eq $createTireJson.id) {
 $smokeTireId = $createTireJson.id
 Write-Pass "Admin create tire 成功，tireId=$smokeTireId"
 
-# 6) Admin update tire：驗證後台輪胎更新流程。
-$updateTireResult = Invoke-ApiRequest `
-    -Name "Admin update tire" `
-    -Method "PUT" `
-    -Uri "$BaseUrl/api/admin/tires/$smokeTireId" `
-    -ExpectedStatus 200 `
-    -Headers $authorizedHeaders `
-    -Body @{
-        brand = "SmokeBrand$smokeSuffix"
-        series = "SmokeSeries${smokeSuffix}Upd"
-        origin = "JP"
-        size = "205/55R16"
-        price = 1567
-        isActive = $true
-    } `
-    -Session $session
-
-$updateTireJson = Convert-JsonOrNull $updateTireResult.BodyText
-if ($null -eq $updateTireJson -or $updateTireJson.price -ne 1567) {
-    Write-Fail "後台更新輪胎回應不符合預期（price != 1567）。"
-}
-Write-Pass "Admin update tire 成功"
-
-# 7) Admin patch tire active：驗證後台上下架切換流程。
-$patchTireResult = Invoke-ApiRequest `
-    -Name "Admin patch tire active" `
-    -Method "PATCH" `
-    -Uri "$BaseUrl/api/admin/tires/$smokeTireId/active" `
-    -ExpectedStatus 200 `
-    -Headers $authorizedHeaders `
-    -Body @{ isActive = $false } `
-    -Session $session
-
-$patchTireJson = Convert-JsonOrNull $patchTireResult.BodyText
-if ($null -eq $patchTireJson -or $patchTireJson.isActive -ne $false) {
-    Write-Fail "輪胎上下架更新後，回應 isActive 非 false。"
-}
-Write-Pass "Admin patch tire active 成功"
-
-# 8) Public Tires：驗證公開讀取路徑（無需 token）
+# 7) Public tires：驗證公開查詢路徑，並確認剛建立輪胎可被查到
 $tiresResult = Invoke-ApiRequest `
     -Name "Public tires list" `
     -Method "GET" `
@@ -312,77 +341,227 @@ if ($null -eq $tiresJson -or $null -eq $tiresJson.items) {
     Write-Fail "輪胎列表回應缺少 items。"
 }
 
-if ($tiresJson.items.Count -lt 1) {
-    Write-Fail "無可用輪胎資料，無法繼續建單 smoke。請先確認測試資料。"
+$smokeTireInPublic = $tiresJson.items | Where-Object { $_.id -eq $smokeTireId } | Select-Object -First 1
+if ($null -eq $smokeTireInPublic) {
+    Write-Fail "公開輪胎列表未找到剛建立的 tireId=$smokeTireId。"
 }
+Write-Pass "Public tires list 正常，且可查到 smoke 輪胎"
 
-$tireId = $tiresJson.items[0].id
-Write-Pass "Public tires list 正常，將使用 tireId=$tireId 建單"
-
-# 9) Create Order：驗證公開寫入路徑（寫入資料庫）
-$createOrderResult = Invoke-ApiRequest `
-    -Name "Create order" `
+# 8) Create order #1：使用版本 A 輪胎建單，作為舊快照基準
+$createOrderResultV1 = Invoke-ApiRequest `
+    -Name "Create order with tire snapshot A" `
     -Method "POST" `
     -Uri "$BaseUrl/api/orders" `
     -ExpectedStatus 201 `
     -Body @{
-        tireId = $tireId
+        tireId = $smokeTireId
         quantity = 1
-        customerName = "SmokeTestUser"
+        customerName = "SmokeSnapshotA"
         phone = "0900000000"
-        email = "smoke+$smokeSuffix@example.com"
+        email = "smoke.snapshot.a.$smokeSuffix@example.com"
         installationOption = "INSTALL"
         deliveryAddress = $null
-        carModel = "Smoke Car"
-        notes = "smoke test"
+        carModel = "Smoke Car A"
+        notes = "snapshot A"
     } `
     -Session (New-Object Microsoft.PowerShell.Commands.WebRequestSession)
 
-$orderJson = Convert-JsonOrNull $createOrderResult.BodyText
-if ($null -eq $orderJson -or $null -eq $orderJson.orderId) {
-    Write-Fail "建單回應缺少 orderId。"
+$orderJsonV1 = Convert-JsonOrNull $createOrderResultV1.BodyText
+if ($null -eq $orderJsonV1 -or $null -eq $orderJsonV1.orderId) {
+    Write-Fail "第一筆建單回應缺少 orderId。"
 }
+$orderIdV1 = $orderJsonV1.orderId
+Write-Pass "Create order #1 成功，orderId=$orderIdV1"
 
-$orderId = $orderJson.orderId
-Write-Pass "Create order 正常，orderId=$orderId"
-
-# 10) Admin list orders：驗證 admin 授權讀取路徑
-$adminOrdersResult = Invoke-ApiRequest `
-    -Name "Admin list orders" `
+# 9) Admin list orders：驗證訂單 #1 快照等於版本 A
+$adminOrdersResultV1 = Invoke-ApiRequest `
+    -Name "Admin list orders after order #1" `
     -Method "GET" `
     -Uri "$BaseUrl/api/admin/orders" `
     -ExpectedStatus 200 `
     -Headers $authorizedHeaders `
     -Session $session
 
-$adminOrdersJson = Convert-JsonOrNull $adminOrdersResult.BodyText
-if ($null -eq $adminOrdersJson -or $null -eq $adminOrdersJson.items) {
-    Write-Fail "後台訂單列表回應缺少 items。"
-}
+$adminOrdersJsonV1 = Convert-JsonOrNull $adminOrdersResultV1.BodyText
+$orderV1FromAdmin = Get-OrderFromAdminList `
+    -AdminOrdersJson $adminOrdersJsonV1 `
+    -OrderId $orderIdV1 `
+    -ScenarioName "Order #1 查詢"
 
-$createdOrderInList = $adminOrdersJson.items | Where-Object { $_.id -eq $orderId } | Select-Object -First 1
-if ($null -eq $createdOrderInList) {
-    Write-Fail "後台列表未找到剛建立的 orderId=$orderId。"
-}
-Write-Pass "Admin list orders 可讀取剛建立的訂單"
+Assert-OrderSnapshot `
+    -OrderItem $orderV1FromAdmin `
+    -ExpectedTireId $smokeTireId `
+    -ExpectedBrand $baselineTireBrand `
+    -ExpectedSeries $baselineTireSeries `
+    -ExpectedOrigin $baselineTireOrigin `
+    -ExpectedSize $baselineTireSize `
+    -ExpectedPrice $baselineTirePrice `
+    -ScenarioName "Order #1 快照檢查（建立當下版本 A）"
 
-# 11) Admin patch order status：驗證 admin 授權寫入路徑
-$patchResult = Invoke-ApiRequest `
-    -Name "Admin update order status" `
+# 10) Admin update tire：將同一顆輪胎改為版本 B
+$updateTireResult = Invoke-ApiRequest `
+    -Name "Admin update tire to snapshot B source" `
+    -Method "PUT" `
+    -Uri "$BaseUrl/api/admin/tires/$smokeTireId" `
+    -ExpectedStatus 200 `
+    -Headers $authorizedHeaders `
+    -Body @{
+        brand = $updatedTireBrand
+        series = $updatedTireSeries
+        origin = $updatedTireOrigin
+        size = $updatedTireSize
+        price = $updatedTirePrice
+        isActive = $true
+    } `
+    -Session $session
+
+$updateTireJson = Convert-JsonOrNull $updateTireResult.BodyText
+if ($null -eq $updateTireJson -or [int]$updateTireJson.price -ne $updatedTirePrice) {
+    Write-Fail "後台更新輪胎回應不符合預期（price != $updatedTirePrice）。"
+}
+Write-Pass "Admin update tire 成功，輪胎主資料已切換至版本 B"
+
+# 11) Create order #2：再次用同一顆輪胎建單，應帶入版本 B 快照
+$createOrderResultV2 = Invoke-ApiRequest `
+    -Name "Create order with tire snapshot B" `
+    -Method "POST" `
+    -Uri "$BaseUrl/api/orders" `
+    -ExpectedStatus 201 `
+    -Body @{
+        tireId = $smokeTireId
+        quantity = 2
+        customerName = "SmokeSnapshotB"
+        phone = "0911000000"
+        email = "smoke.snapshot.b.$smokeSuffix@example.com"
+        installationOption = "INSTALL"
+        deliveryAddress = $null
+        carModel = "Smoke Car B"
+        notes = "snapshot B"
+    } `
+    -Session (New-Object Microsoft.PowerShell.Commands.WebRequestSession)
+
+$orderJsonV2 = Convert-JsonOrNull $createOrderResultV2.BodyText
+if ($null -eq $orderJsonV2 -or $null -eq $orderJsonV2.orderId) {
+    Write-Fail "第二筆建單回應缺少 orderId。"
+}
+$orderIdV2 = $orderJsonV2.orderId
+Write-Pass "Create order #2 成功，orderId=$orderIdV2"
+
+# 12) Admin list orders：同時驗證
+#     - 訂單 #1 仍是版本 A（舊快照不變）
+#     - 訂單 #2 為版本 B（新訂單吃到新資料）
+$adminOrdersResultV2 = Invoke-ApiRequest `
+    -Name "Admin list orders after tire update and order #2" `
+    -Method "GET" `
+    -Uri "$BaseUrl/api/admin/orders" `
+    -ExpectedStatus 200 `
+    -Headers $authorizedHeaders `
+    -Session $session
+
+$adminOrdersJsonV2 = Convert-JsonOrNull $adminOrdersResultV2.BodyText
+
+$orderV1AfterUpdate = Get-OrderFromAdminList `
+    -AdminOrdersJson $adminOrdersJsonV2 `
+    -OrderId $orderIdV1 `
+    -ScenarioName "Order #1 輪胎更新後查詢"
+
+$orderV2AfterUpdate = Get-OrderFromAdminList `
+    -AdminOrdersJson $adminOrdersJsonV2 `
+    -OrderId $orderIdV2 `
+    -ScenarioName "Order #2 輪胎更新後查詢"
+
+Assert-OrderSnapshot `
+    -OrderItem $orderV1AfterUpdate `
+    -ExpectedTireId $smokeTireId `
+    -ExpectedBrand $baselineTireBrand `
+    -ExpectedSeries $baselineTireSeries `
+    -ExpectedOrigin $baselineTireOrigin `
+    -ExpectedSize $baselineTireSize `
+    -ExpectedPrice $baselineTirePrice `
+    -ScenarioName "Order #1 快照檢查（輪胎更新後仍保持版本 A）"
+
+Assert-OrderSnapshot `
+    -OrderItem $orderV2AfterUpdate `
+    -ExpectedTireId $smokeTireId `
+    -ExpectedBrand $updatedTireBrand `
+    -ExpectedSeries $updatedTireSeries `
+    -ExpectedOrigin $updatedTireOrigin `
+    -ExpectedSize $updatedTireSize `
+    -ExpectedPrice $updatedTirePrice `
+    -ScenarioName "Order #2 快照檢查（輪胎更新後使用版本 B）"
+
+# 13) Create order（失敗案例）：不存在的輪胎應回 400
+$nonExistentTireId = 9223372036854775807
+Invoke-ApiRequest `
+    -Name "Create order with non-existent tire (expect 400)" `
+    -Method "POST" `
+    -Uri "$BaseUrl/api/orders" `
+    -ExpectedStatus 400 `
+    -Body @{
+        tireId = $nonExistentTireId
+        quantity = 1
+        customerName = "SmokeInvalidTire"
+        phone = "0922000000"
+        email = "smoke.invalid.$smokeSuffix@example.com"
+        installationOption = "INSTALL"
+        deliveryAddress = $null
+        carModel = "Smoke Invalid"
+        notes = "expect 400"
+    } `
+    -Session (New-Object Microsoft.PowerShell.Commands.WebRequestSession) | Out-Null
+
+# 14) Admin patch tire active=false：準備停用輪胎案例
+$patchTireResult = Invoke-ApiRequest `
+    -Name "Admin patch tire active false" `
     -Method "PATCH" `
-    -Uri "$BaseUrl/api/admin/orders/$orderId/status" `
+    -Uri "$BaseUrl/api/admin/tires/$smokeTireId/active" `
+    -ExpectedStatus 200 `
+    -Headers $authorizedHeaders `
+    -Body @{ isActive = $false } `
+    -Session $session
+
+$patchTireJson = Convert-JsonOrNull $patchTireResult.BodyText
+if ($null -eq $patchTireJson -or $patchTireJson.isActive -ne $false) {
+    Write-Fail "輪胎上下架更新後，回應 isActive 非 false。"
+}
+Write-Pass "Admin patch tire active=false 成功"
+
+# 15) Create order（失敗案例）：停用輪胎應回 409
+Invoke-ApiRequest `
+    -Name "Create order with inactive tire (expect 409)" `
+    -Method "POST" `
+    -Uri "$BaseUrl/api/orders" `
+    -ExpectedStatus 409 `
+    -Body @{
+        tireId = $smokeTireId
+        quantity = 1
+        customerName = "SmokeInactiveTire"
+        phone = "0933000000"
+        email = "smoke.inactive.$smokeSuffix@example.com"
+        installationOption = "INSTALL"
+        deliveryAddress = $null
+        carModel = "Smoke Inactive"
+        notes = "expect 409"
+    } `
+    -Session (New-Object Microsoft.PowerShell.Commands.WebRequestSession) | Out-Null
+
+# 16) Admin patch order status：驗證 admin 授權寫入路徑
+$patchOrderResult = Invoke-ApiRequest `
+    -Name "Admin update order #2 status" `
+    -Method "PATCH" `
+    -Uri "$BaseUrl/api/admin/orders/$orderIdV2/status" `
     -ExpectedStatus 200 `
     -Headers $authorizedHeaders `
     -Body @{ status = "CONFIRMED" } `
     -Session $session
 
-$patchJson = Convert-JsonOrNull $patchResult.BodyText
-if ($null -eq $patchJson -or $patchJson.status -ne "CONFIRMED") {
+$patchOrderJson = Convert-JsonOrNull $patchOrderResult.BodyText
+if ($null -eq $patchOrderJson -or $patchOrderJson.status -ne "CONFIRMED") {
     Write-Fail "更新訂單狀態後，回應 status 非 CONFIRMED。"
 }
 Write-Pass "Admin patch order status 正常"
 
-# 12) Logout：驗證登出與 cookie 清除機制
+# 17) Logout：驗證登出與 cookie 清除機制
 $logoutResult = Invoke-ApiRequest `
     -Name "Logout" `
     -Method "POST" `
@@ -396,7 +575,7 @@ if ($null -eq $setCookieHeader -or ($setCookieHeader -notmatch "Max-Age=0")) {
 }
 Write-Pass "Logout 正常，cookie 清除 header 存在"
 
-# 13) Refresh（失敗）：驗證登出後 refresh 應失敗（401）
+# 18) Refresh（失敗）：驗證登出後 refresh 應失敗（401）
 Invoke-ApiRequest `
     -Name "Refresh after logout (expect 401)" `
     -Method "POST" `
@@ -404,7 +583,7 @@ Invoke-ApiRequest `
     -ExpectedStatus 401 `
     -Session $session | Out-Null
 
-# 14) Admin endpoint 無 token（失敗）：驗證授權保護有效
+# 19) Admin endpoint 無 token（失敗）：驗證授權保護有效
 Invoke-ApiRequest `
     -Name "Admin orders without token (expect 403)" `
     -Method "GET" `
@@ -412,7 +591,7 @@ Invoke-ApiRequest `
     -ExpectedStatus 403 `
     -Session (New-Object Microsoft.PowerShell.Commands.WebRequestSession) | Out-Null
 
-# 15) Refresh 無 cookie（失敗）：驗證 cookie 保護有效
+# 20) Refresh 無 cookie（失敗）：驗證 cookie 保護有效
 Invoke-ApiRequest `
     -Name "Refresh without cookie (expect 401)" `
     -Method "POST" `
@@ -420,7 +599,7 @@ Invoke-ApiRequest `
     -ExpectedStatus 401 `
     -Session (New-Object Microsoft.PowerShell.Commands.WebRequestSession) | Out-Null
 
-# 全部測試完成：輸出最終結論
+# 全部測試完成：輸出最終結論（含 Phase 4 Snapshot 驗證）
 Write-Host ""
-Write-Host "Smoke Integration 測試完成：全部通過" -ForegroundColor Green
+Write-Host "Smoke Integration 測試完成：全部通過（含 Phase 4 Snapshot 驗證）" -ForegroundColor Green
 

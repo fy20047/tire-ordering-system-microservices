@@ -1765,3 +1765,42 @@
 
 ### 小總結
 - README 與 SETUP 已對齊目前 Phase 4 真實狀態，可直接作為後續 smoke 驗證與部署操作依據。
+
+## 2026-04-01 - Step 7I：Phase 4 Smoke 腳本升級（含 Snapshot 驗證）
+
+### 對應清單項目
+- `README.md` §12 Phase 4 細項 9：執行/補齊 Phase 4 smoke，覆蓋建單成功/失敗與 snapshot 在輪胎改版後的穩定性。
+
+### 本次修改檔案
+- `scripts/smoke/run-smoke-gateway.ps1`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. Smoke 腳本目標調整為 Phase 4 驗收
+   - 檔頭用途說明從 Phase 3 路徑驗證，升級為 Phase 4 驗收重點（Order Service + Snapshot）。
+2. 新增 snapshot 驗證輔助函式
+   - `Get-OrderFromAdminList`：從後台列表精準抓指定 `orderId`，避免誤比對。
+   - `Assert-OrderSnapshot`：比對 `tireId/brand/series/origin/size/price` 六個快照欄位。
+3. 重排 smoke 流程（步驟 1~20）
+   - 保留 auth/security 基礎檢查（login、refresh、logout、401/403）。
+   - 用腳本自建輪胎作為快照基準資料，避免依賴既有資料順序。
+   - 建立訂單 #1（輪胎版本 A）後，檢查快照為版本 A。
+   - 更新同輪胎為版本 B，再建訂單 #2，驗證：
+     - 訂單 #1 快照仍為版本 A（舊單不變）。
+     - 訂單 #2 快照為版本 B（新單吃新資料）。
+   - 補齊失敗案例：
+     - 不存在輪胎建單 -> `400`
+     - 停用輪胎建單 -> `409`
+
+### 分段原因說明
+- 這一步只處理 smoke 腳本，未混入 service/k8s 文件改動，讓驗收腳本可獨立回滾與審閱。
+
+### 驗證結果
+- PowerShell 語法解析：
+  - `[System.Management.Automation.Language.Parser]::ParseFile(...)` -> `PARSE_OK`
+- 本機實跑：
+  - `powershell -ExecutionPolicy Bypass -File .\scripts\smoke\run-smoke-gateway.ps1 -BaseUrl "http://localhost:8080" -AdminUsername "admin" -AdminPassword "admin123"`
+  - 結果：`Login` 步驟連線失敗（`Unable to connect to the remote server`），原因是本機 `localhost:8080` 服務未啟動。
+
+### 小總結
+- Phase 4 smoke 腳本已補齊 snapshot 穩定性與建單失敗案例；待本機服務啟動後可直接做端到端驗收。
