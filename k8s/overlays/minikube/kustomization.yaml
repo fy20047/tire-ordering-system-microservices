@@ -13,16 +13,16 @@ resources:
 - limitrange.yaml
 namespace: tire-ordering
 images:
-- name: ghcr.io/fy20047/tire-ordering-system-microservices/frontend
-  newTag: 9e16beffa9f9e387f2cfb0dbc4b470a10edd5b2d
 - name: ghcr.io/fy20047/tire-ordering-system-microservices/api-gateway
-  newTag: 3475216ddf09cf67a1e6f64a31a34ef5d6990a19
+  newTag: 9b09394e4da6b24c93de1af1cc4d3a6cdbc282aa
 - name: ghcr.io/fy20047/tire-ordering-system-microservices/auth-service
-  newTag: 3475216ddf09cf67a1e6f64a31a34ef5d6990a19
+  newTag: 9b09394e4da6b24c93de1af1cc4d3a6cdbc282aa
+- name: ghcr.io/fy20047/tire-ordering-system-microservices/frontend
+  newTag: 9b09394e4da6b24c93de1af1cc4d3a6cdbc282aa
 - name: ghcr.io/fy20047/tire-ordering-system-microservices/order-service
-  newTag: 3475216ddf09cf67a1e6f64a31a34ef5d6990a19
+  newTag: 9b09394e4da6b24c93de1af1cc4d3a6cdbc282aa
 - name: ghcr.io/fy20047/tire-ordering-system-microservices/tire-service
-  newTag: 3475216ddf09cf67a1e6f64a31a34ef5d6990a19
+  newTag: 9b09394e4da6b24c93de1af1cc4d3a6cdbc282aa
 patches:
 - path: frontend-nodeport.yaml
 - path: frontend-scale.yaml
