@@ -11,7 +11,7 @@ on:
 # 這段用途：全域環境變數（Registry 與映像命名空間）
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAMESPACE: fy20047/tire-ordering-system
+  IMAGE_NAMESPACE: fy20047/tire-ordering-system-microservices
 
 jobs:
   # 這段用途：建置與測試所有 Java 微服務，並在 push 時推送映像

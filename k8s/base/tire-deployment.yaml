@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: tire-service
-          image: ghcr.io/fy20047/tire-ordering-system/tire-service:latest
+          image: ghcr.io/fy20047/tire-ordering-system-microservices/tire-service:latest
           ports:
             - name: http
               containerPort: 8080

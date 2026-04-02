@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: ghcr.io/fy20047/tire-ordering-system/auth-service:latest
+          image: ghcr.io/fy20047/tire-ordering-system-microservices/auth-service:latest
           ports:
             - name: http
               containerPort: 8080
