@@ -687,7 +687,7 @@ order-service -> (HTTP /api/tires/{id}) -> tire-service
 - [x] 盤點所有仍指向 `backend` 的 Gateway 路由與環境變數，確認替代路徑（已完成：`docs/phase5-gateway-backend-inventory.md`）
 - [ ] 產出資料庫拆分計畫（schema/實例切分、遷移步驟、回滾條件）
 - [x] 從 `infra/docker-compose*.yml` 移除 `backend` 並完成本機啟動驗證（2026-04-02 已以 `docker compose up -d --build --remove-orphans` 驗證）
-- [ ] 從 `k8s/base` 與 `k8s/overlays/minikube` 移除 `backend` 部署與設定注入
+- [x] 從 `k8s/base` 與 `k8s/overlays/minikube` 移除 `backend` 部署與設定注入（2026-04-02 已以 `kubectl kustomize k8s/base` 與 `kubectl kustomize k8s/overlays/minikube` 驗證）
 - [ ] 更新 `.github/workflows`，移除 backend build/push，補純微服務流程驗證
 - [ ] 補齊 Phase 5 smoke 指令與實跑結果到 `SETUP_GUIDE.md`
 - [ ] 補齊最終拓樸 ASCII 圖與 runbook 索引到 `README.md`
@@ -849,8 +849,6 @@ order-service -> (HTTP /api/tires/{id}) -> tire-service
 | `k8s/base/tire-service.yaml` | tire-service Service |
 | `k8s/base/order-deployment.yaml` | order-service Deployment |
 | `k8s/base/order-service.yaml` | order-service Service |
-| `k8s/base/backend-deployment.yaml` | backend Deployment |
-| `k8s/base/backend-service.yaml` | backend Service |
 | `k8s/base/frontend-deployment.yaml` | frontend Deployment |
 | `k8s/base/frontend-service.yaml` | frontend Service |
 | `k8s/base/mariadb-service.yaml` | MariaDB Service |
@@ -861,18 +859,13 @@ order-service -> (HTTP /api/tires/{id}) -> tire-service
 | `k8s/overlays/minikube/app-config.yaml` | app config ConfigMap |
 | `k8s/overlays/minikube/app-sealedsecret.yaml` | app 密鑰 SealedSecret |
 | `k8s/overlays/minikube/db-sealedsecret.yaml` | DB 密鑰 SealedSecret |
-| `k8s/overlays/minikube/backend-configmap-env.yaml` | backend env patch |
 | `k8s/overlays/minikube/auth-configmap-env.yaml` | auth-service env patch |
 | `k8s/overlays/minikube/tire-configmap-env.yaml` | tire-service env patch |
 | `k8s/overlays/minikube/order-configmap-env.yaml` | order-service env patch |
-| `k8s/overlays/minikube/backend-resources.yaml` | backend 資源限制 patch |
-| `k8s/overlays/minikube/backend-scale.yaml` | backend replica patch |
 | `k8s/overlays/minikube/frontend-nodeport.yaml` | frontend NodePort patch |
 | `k8s/overlays/minikube/frontend-resources.yaml` | frontend 資源限制 patch |
 | `k8s/overlays/minikube/frontend-scale.yaml` | frontend replica patch |
-| `k8s/overlays/minikube/hpa-backend.yaml` | backend HPA |
 | `k8s/overlays/minikube/hpa-frontend.yaml` | frontend HPA |
-| `k8s/overlays/minikube/pdb-backend.yaml` | backend PDB |
 | `k8s/overlays/minikube/pdb-frontend.yaml` | frontend PDB |
 | `k8s/overlays/minikube/resourcequota.yaml` | namespace 資源配額 |
 | `k8s/overlays/minikube/limitrange.yaml` | Pod/container 預設限制 |

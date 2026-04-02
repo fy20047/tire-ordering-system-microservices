@@ -2053,3 +2053,72 @@
 
 ### 小總結
 - compose 層已完成 backend 下線且本機啟動驗證通過；下一步可進入 `k8s/base` 與 `k8s/overlays/minikube` 的 backend 資源移除。
+
+## 2026-04-02 - Step 8D-1：從 K8s base/overlay 移除 backend 部署與設定注入
+
+### 對應清單項目
+- `README.md` §12「Phase 5 待完成項目」第 4 項：
+  - 從 `k8s/base` 與 `k8s/overlays/minikube` 移除 `backend` 部署與設定注入。
+
+### 本次修改檔案
+- `k8s/base/kustomization.yaml`（更新）
+- `k8s/base/backend-deployment.yaml`（刪除）
+- `k8s/base/backend-service.yaml`（刪除）
+- `k8s/overlays/minikube/kustomization.yaml`（更新）
+- `k8s/overlays/minikube/backend-configmap-env.yaml`（刪除）
+- `k8s/overlays/minikube/backend-resources.yaml`（刪除）
+- `k8s/overlays/minikube/backend-scale.yaml`（刪除）
+- `k8s/overlays/minikube/hpa-backend.yaml`（刪除）
+- `k8s/overlays/minikube/pdb-backend.yaml`（刪除）
+- `k8s/overlays/minikube/app-config.yaml`（更新）
+- `k8s/overlays/minikube/app-sealedsecret.yaml`（更新）
+- `README.md`（更新）
+- `SETUP_GUIDE.md`（更新）
+- `docs/phase5-gateway-backend-inventory.md`（更新）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. 移除 base 層 backend 資源
+   - `k8s/base/kustomization.yaml` 移除：
+     - `backend-service.yaml`
+     - `backend-deployment.yaml`
+   - 刪除上述兩個 backend base manifest 檔案。
+2. 移除 minikube overlay 層 backend 擴充資源
+   - `k8s/overlays/minikube/kustomization.yaml` 移除：
+     - resources：`hpa-backend.yaml`、`pdb-backend.yaml`
+     - images：兩個 backend image 覆寫項目
+     - patches：`backend-scale.yaml`、`backend-configmap-env.yaml`、`backend-resources.yaml`
+   - 刪除上述 backend overlay 檔案（scale/configmap env/resources/hpa/pdb）。
+3. 清理 backend 專屬 ConfigMap/Secret 鍵值
+   - `app-config.yaml` 移除：
+     - `BACKEND_AUTH_ENDPOINTS_ENABLED`
+     - `BACKEND_TIRE_ENDPOINTS_ENABLED`
+     - `BACKEND_ORDER_ENDPOINTS_ENABLED`
+   - `app-sealedsecret.yaml` 移除 `BACKEND_AUTH_ENDPOINTS_ENABLED` 加密鍵值。
+4. 文件同步
+   - `README.md`：
+     - 勾選「移除 k8s backend 部署與設定注入」為已完成。
+     - 更新 K8s 檔案索引，移除已刪除 backend 資源條目。
+   - `SETUP_GUIDE.md`：
+     - 移除 `rollout restart deployment backend` 指令
+     - Kubernetes 部署描述改為不含 backend
+     - app-secret 備註改為「Phase 5 起不需 backend 專屬鍵值」
+   - `docs/phase5-gateway-backend-inventory.md`：
+     - 結論更新為 backend 已從 compose/k8s 部署資源移除
+     - 下一步改為 CI/CD 收斂與 smoke/runbook 收尾
+
+### 分段原因說明
+- 在 Step 8C-1 完成 compose 下線後，再處理 K8s 可避免同時改兩個部署維度造成排查困難。
+- 本步聚焦於「K8s backend 下線 + 直接關聯文件」，CI/CD 與 smoke 另拆下一步處理。
+
+### 驗證結果
+- 已執行：
+  - `kubectl kustomize k8s/base`
+  - `kubectl kustomize k8s/overlays/minikube`
+- 結果：兩者都可成功輸出 manifest，且輸出中不再包含 backend Deployment/Service/HPA/PDB。
+- 補充檢查：
+  - `git grep -n "name: backend|app: backend|hpa-backend|pdb-backend|backend-scale|backend-configmap-env|backend-resources" k8s/base k8s/overlays/minikube`
+  - 結果：無 backend 資源殘留匹配。
+
+### 小總結
+- K8s 層已完成 backend 下線，Phase 5 的 compose + k8s 部署收斂已到位；下一步可處理 CI workflow 移除 backend build/push。

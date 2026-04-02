@@ -122,7 +122,7 @@ kubectl -n tire-ordering create secret generic db-secret --from-literal=MARIADB_
 2-2. 建立應用程式相關的 Secret (app-secret)
 - 包含 JWT RS256 金鑰（private/public key）、管理員帳號與密碼
 - `replace_with_private_key` / `replace_with_public_key` 與 `changeme` 都要替換成真實值
-- `BACKEND_*_ENDPOINTS_ENABLED` 由 `app-config` ConfigMap 管理，不需放在 app-secret
+- Phase 5 起 backend 已下線，`app-secret` 不需要任何 backend 專屬鍵值
 ```powershell
 kubectl -n tire-ordering create secret generic app-secret `
   --from-literal=JWT_PRIVATE_KEY='<your_rs256_private_key_pem>' `
@@ -188,7 +188,6 @@ kubectl -n tire-ordering get secrets | findstr secret
 ### Optional: 移除明文 Secret (SealedSecret 會自動重新建立它們)
 ```powershell
 kubectl -n tire-ordering delete secret app-secret db-secret
-kubectl -n tire-ordering rollout restart deployment backend
 ```
 
 ### 備註
@@ -203,7 +202,7 @@ minikube start --driver=docker
 kubectl config use-context minikube
 ```
 ### 2. 部署應用程式
-使用 Kustomize 部署會用到的 K8s 資源 (DB, Backend, Auth Service, Tire Service, Order Service, API Gateway, Frontend)，第一次部署前，要先確定有手動建立 Secret (上方的 db-secret, app-secret)
+使用 Kustomize 部署會用到的 K8s 資源 (DB, Auth Service, Tire Service, Order Service, API Gateway, Frontend)，第一次部署前，要先確定有手動建立 Secret (上方的 db-secret, app-secret)
 ```powershell
 # Apply manifests
 kubectl apply -k k8s/overlays/minikube
@@ -231,7 +230,6 @@ kubectl apply -k k8s/overlays/minikube
 如果已經改 tag，就不需要 rollout restart，只有在 tag 沒變（像是用 latest）時才需要：
 ```powershell
 kubectl -n tire-ordering rollout restart deployment frontend
-kubectl -n tire-ordering rollout restart deployment backend
 kubectl -n tire-ordering rollout restart deployment auth-service
 kubectl -n tire-ordering rollout restart deployment tire-service
 kubectl -n tire-ordering rollout restart deployment order-service

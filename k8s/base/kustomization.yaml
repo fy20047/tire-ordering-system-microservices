@@ -3,8 +3,6 @@ kind: Kustomization
 resources:
   - mariadb-service.yaml
   - mariadb-statefulset.yaml
-  - backend-service.yaml
-  - backend-deployment.yaml
   - auth-service.yaml
   - auth-deployment.yaml
   - tire-service.yaml

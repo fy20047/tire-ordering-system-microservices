@@ -39,10 +39,10 @@ Step 8B-3 更新後狀態：**無**
 
 - 主業務流量（Auth/Tire/Order）已完成替代路徑，不依賴 backend。
 - Gateway 路由層已不再依賴 backend（包含 `/api/health`）。
-- 目前 backend 仍存在於部署資源（compose/k8s）層，屬於 Phase 5 下一階段下線工作。
+- backend 已從 compose/k8s 部署資源中移除。
 
 ## 6. 後續拆步建議（下一小步）
 
-1. 進入 Phase 5 下一項：從 `infra/docker-compose*.yml` 移除 `backend` 服務節點並驗證本機啟動。
-2. 同步規劃並執行 `k8s/base`、`k8s/overlays/minikube` 的 backend 資源移除。
-3. 補充 `SETUP_GUIDE.md`：註明 `/api/health` 由 Gateway 自身回應。
+1. 進入 Phase 5 下一項：更新 `.github/workflows`，移除 backend build/push 與對應部署更新。
+2. 補齊 Phase 5 smoke 指令與實跑結果到 `SETUP_GUIDE.md`。
+3. 補齊 README 最終拓樸 ASCII 圖與 runbook 索引。
