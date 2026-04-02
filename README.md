@@ -688,7 +688,7 @@ order-service -> (HTTP /api/tires/{id}) -> tire-service
 - [ ] 產出資料庫拆分計畫（schema/實例切分、遷移步驟、回滾條件）
 - [x] 從 `infra/docker-compose*.yml` 移除 `backend` 並完成本機啟動驗證（2026-04-02 已以 `docker compose up -d --build --remove-orphans` 驗證）
 - [x] 從 `k8s/base` 與 `k8s/overlays/minikube` 移除 `backend` 部署與設定注入（2026-04-02 已以 `kubectl kustomize k8s/base` 與 `kubectl kustomize k8s/overlays/minikube` 驗證）
-- [ ] 更新 `.github/workflows`，移除 backend build/push，補純微服務流程驗證
+- [x] 更新 `.github/workflows`，移除 backend build/push，補純微服務流程驗證（2026-04-02 已改為 `api-gateway/auth-service/tire-service/order-service/frontend`）
 - [ ] 補齊 Phase 5 smoke 指令與實跑結果到 `SETUP_GUIDE.md`
 - [ ] 補齊最終拓樸 ASCII 圖與 runbook 索引到 `README.md`
 
@@ -874,5 +874,5 @@ order-service -> (HTTP /api/tires/{id}) -> tire-service
 
 | 檔案 | 說明 |
 |---|---|
-| `.github/workflows/ci.yml` | 目前 CI pipeline（backend/frontend build, push, update manifest） |
+| `.github/workflows/ci.yml` | 目前 CI pipeline（api-gateway/auth-service/tire-service/order-service/frontend build, push, update manifest） |
 | `argocd/app.yaml` | ArgoCD Application（自動 sync k8s overlay） |

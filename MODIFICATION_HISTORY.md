@@ -2122,3 +2122,71 @@
 
 ### 小總結
 - K8s 層已完成 backend 下線，Phase 5 的 compose + k8s 部署收斂已到位；下一步可處理 CI workflow 移除 backend build/push。
+
+## 2026-04-02 - Step 8E-1：更新 CI 為純微服務流程，移除 backend build/push 與 manifest 更新
+
+### 對應清單項目
+- `README.md` §12「Phase 5 待完成項目」第 5 項：
+  - 更新 `.github/workflows`，移除 backend build/push，補純微服務流程驗證。
+
+### 本次修改檔案
+- `.github/workflows/ci.yml`（更新）
+- `README.md`（更新）
+- `docs/phase5-gateway-backend-inventory.md`（更新）
+- `docs/monolith-to-microservices-migration-guide.md`（新增）
+- `MODIFICATION_HISTORY.md`（更新）
+
+### 變更內容
+1. CI job 架構改為純微服務
+   - 移除舊 `backend` job。
+   - 新增 `java-services` matrix job，覆蓋：
+     - `api-gateway`
+     - `auth-service`
+     - `tire-service`
+     - `order-service`
+   - 保留 `frontend` job（lint/build + image build/push）。
+2. 映像推送路徑收斂
+   - workflow env 改為：
+     - `REGISTRY=ghcr.io`
+     - `IMAGE_NAMESPACE=fy20047/tire-ordering-system`
+   - Java/Frontend image tags 統一為：
+     - `ghcr.io/fy20047/tire-ordering-system/<service>:latest`
+     - `ghcr.io/fy20047/tire-ordering-system/<service>:<sha>`
+3. manifest 更新改為微服務集合
+   - `update-manifest` 的 `needs` 改為 `[java-services, frontend]`。
+   - `kustomize edit set image` 改為更新：
+     - `api-gateway/auth-service/tire-service/order-service/frontend`
+   - 完整移除 backend image tag 更新。
+4. 文件同步
+   - `README.md` 勾選 CI 收斂項目為已完成，並更新 CI 檔案說明為微服務集合。
+   - `docs/phase5-gateway-backend-inventory.md` 下一步改為資料庫拆分/Phase 5 smoke/runbook 收尾。
+5. 新增遷移說明文件（你要求的詳細版）
+   - 新增 `docs/monolith-to-microservices-migration-guide.md`：
+     - Monolith 與 Microservices 差異總覽
+     - Phase 1~5 實作過程與每階段調整重點
+     - 遷移注意事項與常見陷阱
+     - 可口述的 60~90 秒精簡版本
+
+### 註解規範對齊
+- 本步新增/更新的 workflow 與文件內容皆以中文說明段落用途與調整意圖，便於後續維運與交接。
+
+### 分段原因說明
+- 在 compose/k8s backend 下線後，先收斂 CI 可避免後續 pipeline 持續產出舊 backend 映像。
+- 同一時間補齊遷移說明文件，可把已完成的架構演進脈絡固定下來，降低知識斷層。
+
+### 驗證結果
+- 已執行本機建置/測試驗證（對齊新 CI 的 Java matrix 路徑）：
+  - `.\backend\mvnw.cmd -q -f .\api-gateway\pom.xml test`
+  - `.\backend\mvnw.cmd -q -f .\auth-service\pom.xml test`
+  - `.\backend\mvnw.cmd -q -f .\tire-service\pom.xml test`
+  - `.\backend\mvnw.cmd -q -f .\order-service\pom.xml test`
+  - `.\backend\mvnw.cmd -q -DskipTests -f .\api-gateway\pom.xml package`
+  - `.\backend\mvnw.cmd -q -DskipTests -f .\auth-service\pom.xml package`
+  - `.\backend\mvnw.cmd -q -DskipTests -f .\tire-service\pom.xml package`
+  - `.\backend\mvnw.cmd -q -DskipTests -f .\order-service\pom.xml package`
+  - 結果：全部成功。
+- 備註：
+  - 本機環境無 YAML parser cmdlet（`ConvertFrom-Yaml` 不可用），workflow 語法正確性以人工審閱與既有 Actions 語法格式對照確認。
+
+### 小總結
+- CI 已從 backend/frontend 收斂為純微服務流程，並補上完整遷移說明文件；Phase 5 剩餘重點為資料庫拆分計畫、smoke 實跑結果與 README runbook/最終拓樸收尾。

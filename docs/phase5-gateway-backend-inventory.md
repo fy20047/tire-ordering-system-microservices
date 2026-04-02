@@ -43,6 +43,6 @@ Step 8B-3 更新後狀態：**無**
 
 ## 6. 後續拆步建議（下一小步）
 
-1. 進入 Phase 5 下一項：更新 `.github/workflows`，移除 backend build/push 與對應部署更新。
+1. 進入 Phase 5 下一項：產出資料庫拆分計畫（schema/實例切分、遷移步驟、回滾條件）。
 2. 補齊 Phase 5 smoke 指令與實跑結果到 `SETUP_GUIDE.md`。
 3. 補齊 README 最終拓樸 ASCII 圖與 runbook 索引。
