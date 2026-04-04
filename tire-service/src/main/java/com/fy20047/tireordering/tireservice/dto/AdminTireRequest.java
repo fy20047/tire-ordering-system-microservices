@@ -12,7 +12,7 @@ public record AdminTireRequest(
         @NotBlank @Size(max = 100) String series,
         @Size(max = 50) String origin,
         @NotBlank @Size(max = 50) String size,
-        @Min(0) Integer price,
+        @NotNull @Min(0) Integer price,
         @NotNull Boolean isActive
 ) {
 }
