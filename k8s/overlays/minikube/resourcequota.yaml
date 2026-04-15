@@ -3,9 +3,9 @@ kind: ResourceQuota
 metadata:
   name: tire-ordering-quota
 spec:
-  hard: # 限制整個 Namespace 加總不能超過這些數字
-    requests.cpu: "1500m" # 1.5 顆 CPU
-    requests.memory: "2Gi" # 2GB RAM
-    limits.cpu: "2500m" # # 所有 Pod 的 limits 加起來不能超過 2.5 顆 CPU
-    limits.memory: "4Gi" # 所有 Pod 的 limits 加起來不能超過 4GB RAM
-    pods: "20" # 這個 Namespace 最多只能同時存在 20 個 Pod (防止出現無窮迴圈狂開 Pod)
+  hard:
+    requests.cpu: "1500m"
+    requests.memory: "2Gi"
+    limits.cpu: "4000m"
+    limits.memory: "4Gi"
+    pods: "20"

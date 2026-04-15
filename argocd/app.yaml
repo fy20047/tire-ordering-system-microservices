@@ -1,30 +1,24 @@
 apiVersion: argoproj.io/v1alpha1
-kind: Application # ArgoCD 專屬的資源種類
+kind: Application
 metadata:
   name: tire-ordering
-  namespace: argocd # 這份設定檔要放在 ArgoCD 的 namespace 裡，ArgoCD 才看得到
+  namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://github.com/fy20047/tire-ordering-system.git
+    repoURL: https://github.com/fy20047/tire-ordering-system-microservices.git
     targetRevision: main
-    path: k8s/overlays/minikube # 只看這個資料夾 (因為有用 Kustomize)
+    path: k8s/overlays/minikube
   destination:
-    server: https://kubernetes.default.svc # 部署到當前這個 K8s Cluster
-    namespace: tire-ordering # 把東西都丟進這個 tire-ordering 這個 namespace
-  syncPolicy:   # ArgoCD 自動化規則
+    server: https://kubernetes.default.svc
+    namespace: tire-ordering
+  syncPolicy:
     automated:
-      prune: true # 自動修剪，GitHub 上刪檔後，ArgoCD 就會自動把 K8s 裡的對應 Pod 砍掉
-      selfHeal: true # 自動修復，避免像是 replicas = 0 的狀況發生
+      prune: true
+      selfHeal: false
     syncOptions:
-      - CreateNamespace=true # 自動創建 namespace
+      - CreateNamespace=true
   ignoreDifferences:
-    - group: apps
-      kind: Deployment
-      name: backend
-      namespace: tire-ordering
-      jsonPointers:
-        - /spec/replicas
     - group: apps
       kind: Deployment
       name: frontend
