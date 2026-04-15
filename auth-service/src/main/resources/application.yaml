@@ -7,7 +7,7 @@ spring:
 
   # 資料庫連線：目前先共用現有 monolith DB（Phase 2 先專注拆 Auth 邊界）。
   datasource:
-    url: "jdbc:mariadb://${DB_HOST:localhost}:${DB_PORT:3307}/${DB_NAME:tire_shop}"
+    url: "jdbc:mariadb://${DB_HOST:localhost}:${DB_PORT:3307}/${DB_NAME:auth_service}"
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.mariadb.jdbc.Driver

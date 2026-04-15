@@ -1,18 +1,55 @@
 services:
-  # MariaDB：目前微服務共用資料來源（Phase 5 前仍採單一資料庫實例）
-  mariadb:
+  mariadb-auth:
     image: mariadb:11
-    container_name: tire_mariadb
+    container_name: tire_mariadb_auth
     environment:
-      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_DATABASE: ${AUTH_DB_NAME}
       MARIADB_USER: ${DB_USERNAME}
       MARIADB_PASSWORD: ${DB_PASSWORD}
       MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       TZ: Asia/Taipei
     ports:
-      - "${DB_PORT}:3306"
+      - "${AUTH_DB_PORT}:3306"
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - mariadb_auth_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "127.0.0.1", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mariadb-tire:
+    image: mariadb:11
+    container_name: tire_mariadb_tire
+    environment:
+      MARIADB_DATABASE: ${TIRE_DB_NAME}
+      MARIADB_USER: ${DB_USERNAME}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      TZ: Asia/Taipei
+    ports:
+      - "${TIRE_DB_PORT}:3306"
+    volumes:
+      - mariadb_tire_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "127.0.0.1", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mariadb-order:
+    image: mariadb:11
+    container_name: tire_mariadb_order
+    environment:
+      MARIADB_DATABASE: ${ORDER_DB_NAME}
+      MARIADB_USER: ${DB_USERNAME}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      TZ: Asia/Taipei
+    ports:
+      - "${ORDER_DB_PORT}:3306"
+    volumes:
+      - mariadb_order_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mariadb-admin", "ping", "-h", "127.0.0.1", "-p${DB_ROOT_PASSWORD}"]
       interval: 10s
@@ -25,9 +62,10 @@ services:
     ports:
       - "8081:8080"
     depends_on:
-      - mariadb
+      - mariadb-auth
+      - mariadb-tire
+      - mariadb-order
 
-  # Auth Service：Phase 2 起承接 /api/admin/login|refresh|logout
   auth-service:
     build:
       context: ../auth-service
@@ -35,9 +73,9 @@ services:
     image: tire-ordering-auth-service:local
     container_name: tire_auth_service
     environment:
-      DB_HOST: mariadb
+      DB_HOST: mariadb-auth
       DB_PORT: 3306
-      DB_NAME: ${DB_NAME}
+      DB_NAME: ${AUTH_DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
@@ -50,10 +88,9 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
     depends_on:
-      mariadb:
+      mariadb-auth:
         condition: service_healthy
 
-  # Tire Service：Phase 3 起承接公開與後台輪胎管理 API
   tire-service:
     build:
       context: ../tire-service
@@ -61,19 +98,18 @@ services:
     image: tire-ordering-tire-service:local
     container_name: tire_tire_service
     environment:
-      DB_HOST: mariadb
+      DB_HOST: mariadb-tire
       DB_PORT: 3306
-      DB_NAME: ${DB_NAME}
+      DB_NAME: ${TIRE_DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
       JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-3600}
     depends_on:
-      mariadb:
+      mariadb-tire:
         condition: service_healthy
 
-  # Order Service：Phase 4 起承接前台建單與後台訂單查改，建單時會呼叫 tire-service 驗證商品。
   order-service:
     build:
       context: ../order-service
@@ -81,9 +117,9 @@ services:
     image: tire-ordering-order-service:local
     container_name: tire_order_service
     environment:
-      DB_HOST: mariadb
+      DB_HOST: mariadb-order
       DB_PORT: 3306
-      DB_NAME: ${DB_NAME}
+      DB_NAME: ${ORDER_DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
@@ -91,12 +127,11 @@ services:
       JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-3600}
       TIRE_BASE_URL: http://tire-service:8080
     depends_on:
-      mariadb:
+      mariadb-order:
         condition: service_healthy
       tire-service:
         condition: service_started
 
-  # API Gateway：統一 API 入口，Auth/Tire/Order API 各自分流到對應服務
   api-gateway:
     build:
       context: ../api-gateway
@@ -114,7 +149,6 @@ services:
       - tire-service
       - order-service
 
-  # Frontend：只對外提供 UI，/api 請求改由 nginx 轉給 api-gateway
   frontend:
     build:
       context: ../frontend
@@ -129,4 +163,6 @@ services:
       - api-gateway
 
 volumes:
-  mariadb_data:
+  mariadb_auth_data:
+  mariadb_tire_data:
+  mariadb_order_data:

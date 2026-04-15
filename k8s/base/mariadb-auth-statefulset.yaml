@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: mariadb
+  name: mariadb-auth
   labels:
-    app: mariadb
+    app: mariadb-auth
 spec:
-  serviceName: mariadb
+  serviceName: mariadb-auth
   replicas: 1
   selector:
     matchLabels:
-      app: mariadb
+      app: mariadb-auth
   template:
     metadata:
       labels:
-        app: mariadb
+        app: mariadb-auth
     spec:
       containers:
         - name: mariadb
@@ -26,7 +26,7 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: app-config
-                  key: DB_NAME
+                  key: AUTH_DB_NAME
             - name: MARIADB_USER
               valueFrom:
                 secretKeyRef:
@@ -45,14 +45,14 @@ spec:
             - name: TZ
               value: Asia/Taipei
           volumeMounts:
-            - name: mariadb-data
+            - name: mariadb-auth-data
               mountPath: /var/lib/mysql
           readinessProbe:
             exec:
               command:
-                - sh # Linux 的 Shell 作為執行者
+                - sh
                 - -c
-                - mariadb-admin ping -h 127.0.0.1 -u root -p$MARIADB_ROOT_PASSWORD # MariaDB 內建的 Ping 工具，回傳 0 代表活著
+                - mariadb-admin ping -h 127.0.0.1 -u root -p$MARIADB_ROOT_PASSWORD
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
@@ -69,7 +69,7 @@ spec:
             failureThreshold: 3
   volumeClaimTemplates:
     - metadata:
-        name: mariadb-data
+        name: mariadb-auth-data
       spec:
         accessModes:
           - ReadWriteOnce

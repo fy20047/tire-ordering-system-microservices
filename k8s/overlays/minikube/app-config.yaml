@@ -3,9 +3,15 @@ kind: ConfigMap
 metadata:
   name: app-config
 data:
-  DB_HOST: mariadb
-  DB_PORT: "3306"
-  DB_NAME: tire_shop
+  AUTH_DB_HOST: mariadb-auth
+  AUTH_DB_PORT: "3306"
+  AUTH_DB_NAME: auth_service
+  TIRE_DB_HOST: mariadb-tire
+  TIRE_DB_PORT: "3306"
+  TIRE_DB_NAME: tire_service
+  ORDER_DB_HOST: mariadb-order
+  ORDER_DB_PORT: "3306"
+  ORDER_DB_NAME: order_service
   JWT_EXPIRATION_SECONDS: "3600"
   JWT_REFRESH_EXPIRATION_SECONDS: "1209600"
   JWT_REFRESH_COOKIE_NAME: refreshToken

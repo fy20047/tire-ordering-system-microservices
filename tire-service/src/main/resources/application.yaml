@@ -7,7 +7,7 @@ spring:
 
   # 資料庫連線：Phase 3 初期先沿用既有 MariaDB，先完成服務邊界拆分。
   datasource:
-    url: "jdbc:mariadb://${DB_HOST:localhost}:${DB_PORT:3307}/${DB_NAME:tire_shop}"
+    url: "jdbc:mariadb://${DB_HOST:localhost}:${DB_PORT:3308}/${DB_NAME:tire_service}"
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.mariadb.jdbc.Driver

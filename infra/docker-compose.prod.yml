@@ -1,18 +1,58 @@
 services:
-  mariadb:
+  mariadb-auth:
     image: mariadb:11
-    container_name: tire_mariadb
+    container_name: tire_mariadb_auth
     restart: always
     environment:
-      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_DATABASE: ${AUTH_DB_NAME}
       MARIADB_USER: ${DB_USERNAME}
       MARIADB_PASSWORD: ${DB_PASSWORD}
       MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       TZ: Asia/Taipei
     ports:
-      - "${DB_PORT}:3306"
+      - "${AUTH_DB_PORT}:3306"
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - mariadb_auth_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "127.0.0.1", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mariadb-tire:
+    image: mariadb:11
+    container_name: tire_mariadb_tire
+    restart: always
+    environment:
+      MARIADB_DATABASE: ${TIRE_DB_NAME}
+      MARIADB_USER: ${DB_USERNAME}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      TZ: Asia/Taipei
+    ports:
+      - "${TIRE_DB_PORT}:3306"
+    volumes:
+      - mariadb_tire_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "127.0.0.1", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mariadb-order:
+    image: mariadb:11
+    container_name: tire_mariadb_order
+    restart: always
+    environment:
+      MARIADB_DATABASE: ${ORDER_DB_NAME}
+      MARIADB_USER: ${DB_USERNAME}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      TZ: Asia/Taipei
+    ports:
+      - "${ORDER_DB_PORT}:3306"
+    volumes:
+      - mariadb_order_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mariadb-admin", "ping", "-h", "127.0.0.1", "-p${DB_ROOT_PASSWORD}"]
       interval: 10s
@@ -25,16 +65,18 @@ services:
     ports:
       - "8081:8080"
     depends_on:
-      - mariadb
+      - mariadb-auth
+      - mariadb-tire
+      - mariadb-order
 
   auth-service:
     image: ghcr.io/fy20047/tire-ordering-system-microservices/auth-service:latest
     container_name: tire_auth_service
     restart: always
     environment:
-      DB_HOST: mariadb
+      DB_HOST: mariadb-auth
       DB_PORT: 3306
-      DB_NAME: ${DB_NAME}
+      DB_NAME: ${AUTH_DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
@@ -47,7 +89,7 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
     depends_on:
-      mariadb:
+      mariadb-auth:
         condition: service_healthy
 
   tire-service:
@@ -55,27 +97,26 @@ services:
     container_name: tire_tire_service
     restart: always
     environment:
-      DB_HOST: mariadb
+      DB_HOST: mariadb-tire
       DB_PORT: 3306
-      DB_NAME: ${DB_NAME}
+      DB_NAME: ${TIRE_DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
       JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-3600}
     depends_on:
-      mariadb:
+      mariadb-tire:
         condition: service_healthy
 
-  # Order Service：Phase 4 起承接前台建單與後台訂單查改。
   order-service:
     image: ghcr.io/fy20047/tire-ordering-system-microservices/order-service:latest
     container_name: tire_order_service
     restart: always
     environment:
-      DB_HOST: mariadb
+      DB_HOST: mariadb-order
       DB_PORT: 3306
-      DB_NAME: ${DB_NAME}
+      DB_NAME: ${ORDER_DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
@@ -83,12 +124,11 @@ services:
       JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-3600}
       TIRE_BASE_URL: http://tire-service:8080
     depends_on:
-      mariadb:
+      mariadb-order:
         condition: service_healthy
       tire-service:
         condition: service_started
 
-  # API Gateway：統一 API 入口，Auth/Tire/Order API 各自分流到對應服務
   api-gateway:
     image: ghcr.io/fy20047/tire-ordering-system-microservices/api-gateway:latest
     container_name: tire_api_gateway
@@ -114,4 +154,6 @@ services:
       - api-gateway
 
 volumes:
-  mariadb_data:
+  mariadb_auth_data:
+  mariadb_tire_data:
+  mariadb_order_data:
