@@ -31,7 +31,10 @@ public class SecurityConfig {
                                 "/api/admin/logout",
                                 "/api/health",
                                 "/actuator/health",
-                                "/actuator/info"
+                                "/actuator/info",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
                         ).permitAll()
                         .anyRequest().permitAll()
                 );

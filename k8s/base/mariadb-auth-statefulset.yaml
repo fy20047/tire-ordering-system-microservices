@@ -44,6 +44,13 @@ spec:
                   key: MARIADB_ROOT_PASSWORD
             - name: TZ
               value: Asia/Taipei
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 384Mi
           volumeMounts:
             - name: mariadb-auth-data
               mountPath: /var/lib/mysql

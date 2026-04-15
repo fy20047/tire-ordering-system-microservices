@@ -1,0 +1,12 @@
+services:
+  auth-service:
+    ports:
+      - "18081:8080"
+
+  tire-service:
+    ports:
+      - "18082:8080"
+
+  order-service:
+    ports:
+      - "18083:8080"

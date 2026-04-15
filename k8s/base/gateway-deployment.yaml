@@ -8,6 +8,9 @@ metadata:
 spec:
   # 先採單副本，確保路由切換流程穩定
   replicas: 1
+  progressDeadlineSeconds: 600
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: api-gateway
@@ -22,6 +25,13 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 384Mi
           env:
             # 這段用途：Auth API（login/refresh/logout）轉發到 auth-service。
             - name: AUTH_BASE_URL

@@ -10,6 +10,9 @@ metadata:
 spec:
   # 這段用途：先使用單副本，降低 Phase 2 切流時的變更風險。
   replicas: 1
+  progressDeadlineSeconds: 600
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: auth-service
@@ -40,6 +43,13 @@ spec:
                 secretKeyRef:
                   name: db-secret
                   key: MARIADB_PASSWORD
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 384Mi
           readinessProbe:
             # 這段用途：用 actuator health 判斷是否可接流量。
             httpGet:
